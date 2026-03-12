@@ -1,0 +1,4066 @@
+"FIELD"
+"ACC_ACCOUNT.REP     |select M_LABEL_SUB, M_CLASS, M_MAPPING, M_LABEL  from TRN_ACA1_DBF where M__INTID_ = 'MsMlP60056'"
+"ACC_DAILY_BAL.REP   |SELECT
+ENTD.M_LABEL AS M_ENTITY,
+BAL.M_EN_AMTC AS M_CR_BALANCE,
+BAL.M_EN_AMTD AS M_DT_BALANCE,
+BAL.M_EN_AMTN AS M_NETBALANCE,
+BAL.M_EN_ACCOUNT AS M_ACCOUNT2,
+ACA1.M_LABEL AS M_ACCOUNT, 
+BAL.M_INSTRUMENT AS M_INSTRUMENT,
+CURR.M_DSP_LABEL AS M_CURRENCY,
+BAL.M_EN_DATE AS M_BAL_DATE,
+PC.M_DATE AS M_SYS_DATE
+
+FROM TRN_ACJS_DBF BAL, TRN_PC_DBF PC, TRN_ACA1_DBF ACA1, TRN_PLIN_DBF CURR, TRN_ENTD_DBF ENTD
+WHERE 
+CURR.M_ID=BAL.M_INSTRUMENT 
+AND ACA1.M_REFERENCE = BAL.M_EN_ACCOUNT
+AND ENTD.M_REF=BAL.M_ENTITY
+"
+"ACC_DETAILS.REP     |select distinct M_CATEGORY0,M_DESC from TRN_ACA1_DBF
+where TRIM(M_CATEGORY0) is not null and M__INTID_ = 'MsMlP60056' and M_CATEGORY0<>'96341'"
+"ACC_ENT_FXCONV.REP  |SELECT M_NB AS M_NB,
+    M_ORIG_NB AS M_ORIGIN_NB,
+    CAST(M_CTR_RATE AS NUMBER(25,8)) AS M_CONV_RATE,
+    M_CTR_ORIG_AMT AS M_ORIGIN_AMT,
+    M_DATE AS M_CONV_DATE
+FROM ACG_ENTRY_FX_CONV_DBF
+WHERE M_DATE = @ReportingDate:D"
+"ACC_RULES.REP       |select M_RULE_LB, M_RULE_NB from TRN_ACR1_DBF"
+"ACC_SECURITIES.REP  |SELECT
+M_SE_LABEL,
+M_SE_D_LABEL,
+M_SE_ISIN
+FROM
+SE_HEAD_DBF"
+"ACT_JOBS.REP        |select 
+A.M_IDJOB as M_IDJOB,
+A.M_DATE as M_DATE,
+A.M_TIME as M_TIME,
+A.M_ENDTIME as M_ENDTIME,
+A.M_OWNER as M_OWNER,
+A.M_STATUS as M_STATUS,
+A.M_BATCH as M_BATCH,
+A.M_CTX as M_CTX,
+A.M_REF_SET as M_REF_SET,
+A.M_REF_BATCH as M_REF_BATCH,
+A.M_PID as M_PID,
+A.M_GROUP as M_GROUP,
+B.M_FLTTEMP as M_FLTTEMP,
+D.M_TEMPLATE as M_SCNTMPL,
+D.M_PROCESS_NB as M_PROCESS_NB,
+D.M_BATCH_SIZE as M_BATCH_SIZE,
+D.M_RETRIES as M_RETRIES,
+D.M_THRESHOLD as M_THRESHOLD,
+C.M_CLASS as M_CLASS,
+case 
+	when E.M_OUTPUTTYP  = 0 then 'Viewer'
+	when E.M_OUTPUTTYP  = 1 then 'File'
+	when E.M_OUTPUTTYP = 2 then 'SOAP'
+	when E.M_OUTPUTTYP = 3 then 'Table'
+	when E.M_OUTPUTTYP = 4 then 'Excel'
+	when E.M_OUTPUTTYP = 5 then 'CSV'
+	when E.M_OUTPUTTYP  =6 then 'PDF'
+	else 'None' 
+end as M_OUTPUTTYPE
+
+from ACT_JOB_DBF A
+  left join ACT_SET_DBF B on A.M_REF_SET = B.M_REF
+  left join DAPFILTER_DBF C  on B.M_FLTTEMP = C.M_LABEL and C.M_LABEL <> ''
+  left join SCANNERCFG_DBF D on B.M_SCNTMPL = D.M_REFERENCE
+  left join (select max(M_OUTPUTTYP) as M_OUTPUTTYP,M_IDJOB from ACT_JOBEXT_DBF group by M_IDJOB) E on A.M_IDJOB = E.M_IDJOB
+ where A.M_DATE>=@Start_date:D and A.M_DATE<= @End_date:D"
+"ALTERNATE_ID.REP    |select
+KEYMAP_STC_DBF.M_OBJ_ALT as M_ALT_ID,
+KEYMAP_STC_DBF.M_OBJ_ASYS as M_ALT_SYS, 
+KEYMAP_STC_DBF.M_OBJ_ATYP as M_ALT_TYPE,
+KEYMAP_STC_DBF.M_OBJ_DESC as M_LABEL,    
+'party' as M_TYPE,
+CPDF.M_ID as M_ID , 
+CPDF.M_DSP_LABEL as M_DSP_LABEL
+from KEYMAP_STC_DBF, CLASS_MAPPING_DBF, TRN_CPDF_DBF CPDF
+where KEYMAP_STC_DBF.M_OBJ_CLASS=CLASS_MAPPING_DBF.M_ID 
+and KEYMAP_STC_DBF.M_OBJ_DESC = CPDF.M_LABEL
+and CLASS_MAPPING_DBF.M_NAME like 'mxStaticsOrganizationIPARTY%'
+
+union
+
+select 
+KEYMAP_STC_DBF.M_OBJ_ALT as M_ALT_ID, 
+KEYMAP_STC_DBF.M_OBJ_ASYS as M_ALT_SYS,
+KEYMAP_STC_DBF.M_OBJ_ATYP as M_ALT_TYPE,
+KEYMAP_STC_DBF.M_OBJ_DESC as M_LABEL,
+'portfolio' as M_TYPE,
+null as M_ID,
+'' as M_DSP_LABEL
+from KEYMAP_STC_DBF, CLASS_MAPPING_DBF
+where KEYMAP_STC_DBF.M_OBJ_CLASS=CLASS_MAPPING_DBF.M_ID 
+and CLASS_MAPPING_DBF.M_NAME like 'mxStaticsOrganizationIPORTFOLIO%'"
+"AU_DMTABLE.REP      |-- AU_DMTABLE_REP definition
+-- This table outputs the datamart tables configuration
+select 
+case DM.M_MUREX
+when 0 then 'Client'
+when 1 then 'Murex' end as M_OWNER,
+-- Datamart table name
+DM.M_LABEL as M_LABEL,
+-- Datamart table description
+DM.M_DESC as M_DESC,
+-- Datamart table number of fields
+cast(NUMBER_FIELDS.NUMBER_F as numeric(3,0)) as M_NUMBER_F,
+-- Datamart table source type
+case DM.M_TYPE
+when 0 then 'Dynamic Table'
+when 1 then 'Data Dictionary'
+when 4 then 'SQL' end as M_SRC_TYPE,
+-- Dynamic table source owner
+case DYN_SRC.M_DYN_TABLE_DIR_TYPE
+when 0 then 'Murex'
+when 1 then 'Murex Additional'
+when 2 then 'User'
+when 3 then 'User Additional' end as M_D_OWNER,
+-- Dynamic table source name
+rtrim(DYN_SRC.M_DYN_TABLE) as M_D_TABLE,
+-- Datamart table field name
+COL.M_LABEL as M_FLD_LABEL,
+-- Dynamic table source field name
+COL.M_RELATED_DATA as M_DFLD_LABEL,
+-- Datamart table field type
+case COL.M_TYPE 
+when 65 then 'American'
+when 67 then 'Char'
+when 68 then 'Date'
+when 70 then 'Numeric'
+when 71 then 'Numeric'
+when 73 then 'Numeric'
+when 78 then 'Numeric'
+when 87 then 'Varchar'
+else '-' end as M_DMFLD_TYPE,
+rtrim(cast(COL.M_MAX_LENGTH as char(4))) as M_MAX_LENGTH,
+rtrim(cast(COL.M_DECIMAL as char(2))) as M_DECIMAL,
+
+-- Number of Datamart tables having the same dynamic table as datasource
+coalesce(DM_TABLE_COUNT.DM_TABLE_SAME_SOURCE,0) as M_DM_SAME
+from
+RPO_DMSETUP_TABLE_DBF DM
+left outer join  RPO_DMSETUP_DYN_TABLE_DBF DYN_SRC on (DM.M_REFERENCE=DYN_SRC.M_REFERENCE)
+left outer join (select count(*) as NUMBER_F, M_RPO_DMSETUP_TABLE_REF from RPO_DMSETUP_COLUMN_DBF where M_LABEL<>'MX_REF_JOB' and M_LABEL<>'REF_DATA' and M_LABEL<>'IDENTITY' and M_LABEL<>'TIMESTAMP' group by M_RPO_DMSETUP_TABLE_REF) NUMBER_FIELDS on (NUMBER_FIELDS.M_RPO_DMSETUP_TABLE_REF=DM.M_REFERENCE) 
+left outer join (select * from RPO_DMSETUP_COLUMN_DBF where M_LABEL<>'MX_REF_JOB' and M_LABEL<>'REF_DATA' and M_LABEL<>'IDENTITY' and M_LABEL<>'TIMESTAMP') COL on (COL.M_RPO_DMSETUP_TABLE_REF=DM.M_REFERENCE) 
+-- This last outer join to get for each dynamic table the number of datamart tables having this dynamic table as datasource
+left outer join (select count(*) as DM_TABLE_SAME_SOURCE, DM_TABLE_SOURCE.M_DYN_TABLE_DIR_TYPE as DYN_DIR_TYPE, DM_TABLE_SOURCE.M_DYN_TABLE as DYN_LABEL from (
+					select
+					DM_TABLE.M_LABEL, DYN_SRC.M_DYN_TABLE_DIR_TYPE, DYN_SRC.M_DYN_TABLE
+					from RPO_DMSETUP_TABLE_DBF DM_TABLE, RPO_DMSETUP_DYN_TABLE_DBF DYN_SRC
+where DM_TABLE.M_REFERENCE=DYN_SRC.M_REFERENCE and DM_TABLE.M_TYPE=0) DM_TABLE_SOURCE
+group by M_DYN_TABLE_DIR_TYPE, M_DYN_TABLE) DM_TABLE_COUNT on (DM_TABLE_COUNT.DYN_DIR_TYPE=DYN_SRC.M_DYN_TABLE_DIR_TYPE and DM_TABLE_COUNT.DYN_LABEL=DYN_SRC.M_DYN_TABLE)"
+"AU_DYNTABLE.REP     |-- AU_DYNTABLE_REP dynamic table definition
+-- This table stores the dynamic tables definition and configuration
+-- 1 line per dynamic table
+select 
+-- Dynamic table owner
+DYN_TABLE_DEFINITION.DYN_TABLE_OWNER as M_OWNER,
+-- Dynamic table label
+rtrim(DYN_TABLE_DEFINITION.DYN_TABLE_LABEL) as M_LABEL,
+-- Consolidated view flag ticked
+case DYN_TABLE_DEFINITION.CNS_FLAG
+when 0 then 'No'
+when 1 then 'Yes' end as M_CNS_F,
+-- Built on flag
+case DYN_TABLE_DEFINITION.BUILT_ON
+when 0 then 'Detailed DBF'
+when 1 then 'Consolidated DBF'
+when 2 then 'Stored results'
+else 'N/A' end as M_BUILT_ON_F,
+-- The flag that takes the value Yes if the dynamic table is defined with a postfilter and No otherwise
+case coalesce(DYN_TABLE_DEFINITION.POST_FILTER_F,'Empty')
+when 'Empty' then 'No'
+else 'Yes' end as M_POST_F,
+case DYN_TABLE_DEFINITION.M_CLASS_TYPE
+when 0 then 'Transaction'
+when 1 then 'Accounting'
+            when 2 then 'Copy creation'
+            when 3 then 'External'
+            when 4 then 'Payment'
+            when 5 then 'Definition report'
+            when 6 then 'Accounting (reporting)'
+            when 7 then 'Cash balances'            
+            when 9 then 'PLVar'
+            when 10 then 'Java plugin'
+            when 11 then 'Dictionary engine'
+            when 12 then 'Theta analysis'
+            when 13 then 'VaR'
+            when 14 then 'Simulation PLE'
+            when 15 then 'PLVar PLE'
+            when 16 then 'Deliverable cash'
+            when 17 then 'DLV_NOSTRO_CASH'
+            when 18 then 'ODR_ENGINE'
+            when 19 then 'Trade Version Audit'
+            when 20 then 'Navigation template'
+            when 21 then 'LRB Request'
+            when 22 then 'STP Rights'
+            when 23 then 'STP RIGHTS AUDIT'
+            when 24 then 'Risk Matrix'
+			-- for previous version, Hedge XXX were some class type, we keep for retro compatibility the value 25, 26, 27 and 28
+			when 25 then 'Hedge config'
+			when 26 then 'Hedge trade'
+			when 27 then 'Hedge effectiveness'
+			when 28 then 'Hedge measurement'
+			when 29 then 'Cash position statements'
+			when 30 then 'Securities position statements'
+			when 31 then 'Liquidation position statements'			
+			when 32 then 'Classification tree'
+			when 33 then 'Deliverable physical'
+			when 34 then 'VAR (datasource)'
+			when 35 then 'Order'
+			when 36 then 'SIMSRV_CONFIG'
+			when 37 then 'Liquidation inventory statements'
+			when 38 then 'Corporate actions position statements'
+			when 39 then 'Accounting inventory entries'
+            when 40 then 'ACG inventory balances'
+			when 41 then 'Market risk aggregation'
+            when 42 then 'Settlement management statements in liquidation'
+			when 43 then 'Var (scenario)'
+			when 44 then 'LiveBook'
+			when 45 then 'PostTrade Workflow Audit'
+			when 46 then 'Corporate actions static data'
+            when 47 then 'Hedge'
+			when 48 then 'SIMULATION_BY_GTYPE (PL consolidated)'
+			when 49 then 'CVA'
+			when 50 then 'Inventory statements'
+            when 51 then 'Collateral exchange'
+			when 52 then 'Transfer'
+            when 53 then 'Accounting audit'
+			when 54 then 'Collateral inventory'
+			when 55 then 'Interest'
+			when 57 then 'Simulation sample - internal use for API'
+			when 58 then 'Copy creation sample - internal use for API'
+			when 59 then 'Risk Based PL'
+			when 60 then 'PRM Balance'
+			when 61 then 'Copy creation (based on API)'
+			when 62 then 'LRB'
+			when 63 then 'Limit Compliance (Rule)'
+			when 64 then 'Compliance (Rule)'
+			when 65 then 'Collateral asset eligibility'
+			when 66 then 'Reporting Audit'
+			when 67 then 'Market risk aggregation (based on the API)'
+			when 68 then 'Compliance Audit'
+			when 69 then 'Compliance Evaluation'
+			when 70 then 'Compliance evaluation'
+			when 71 then 'Limit Compliance audit'
+			when 72 then 'Collateral inventory'
+            when 73 then 'Market Risk Limit Audit'
+            when 74 then 'Collateral interest'
+            when 75 then 'Counterparty'
+            when 76 then 'Portfolio'
+            when 77 then 'Excess Management'
+            when 78 then 'Forwards viewer'
+            when 81 then 'Simulation'
+			else 'Not Applicable' end as M_CLASS_TYPE,
+case DATE_COMP0
+when 0 then 'No Selection' 
+when 1 then 'Today' 
+when 2 then 'Yesterday' 
+when 3 then 'Origin (Monthly)' 
+when 4 then 'Date minus' 
+when 5 then 'Inception' 
+when 6 then 'Historical date' 
+when 7 then 'User defined' 
+when 8 then 'Accounting date' 
+when 9 then 'Relative previous' 
+when 10 then 'Relative next' 
+when 11 then 'Origin (Simul)'
+when 12 then 'Origin (Daily)' 
+when 13 then 'Origin (Yearly)' 
+when 14 then 'Trading date' 
+when 15 then 'Date plus'
+when 16 then 'Trading Yesterday' 
+when 17 then 'P&L date' 
+when 18 then 'P&L Yesterday'  
+when 19 then 'Date Shifter'
+when 23 then 'Reporting Date'
+when 24 then 'Reporting Shifter Date'
+else ' ' end as M_COMP_DATE0,
+case DATE_COMP1
+when 0 then 'No Selection' 
+when 1 then 'Today' 
+when 2 then 'Yesterday' 
+when 3 then 'Origin (Monthly)' 
+when 4 then 'Date minus' 
+when 5 then 'Inception' 
+when 6 then 'Historical date' 
+when 7 then 'User defined' 
+when 8 then 'Accounting date' 
+when 9 then 'Relative previous' 
+when 10 then 'Relative next' 
+when 11 then 'Origin (Simul)'
+when 12 then 'Origin (Daily)' 
+when 13 then 'Origin (Yearly)' 
+when 14 then 'Trading date' 
+when 15 then 'Date plus'
+when 16 then 'Trading Yesterday' 
+when 17 then 'P&L date' 
+when 18 then 'P&L Yesterday'  
+when 19 then 'Date Shifter'
+when 23 then 'Reporting Date'
+when 24 then 'Reporting Shifter Date'
+else ' ' end as M_COMP_DATE1,
+case DATE_COMP2
+when 0 then 'No Selection' 
+when 1 then 'Today' 
+when 2 then 'Yesterday' 
+when 3 then 'Origin (Monthly)' 
+when 4 then 'Date minus' 
+when 5 then 'Inception' 
+when 6 then 'Historical date' 
+when 7 then 'User defined' 
+when 8 then 'Accounting date' 
+when 9 then 'Relative previous' 
+when 10 then 'Relative next' 
+when 11 then 'Origin (Simul)'
+when 12 then 'Origin (Daily)' 
+when 13 then 'Origin (Yearly)' 
+when 14 then 'Trading date' 
+when 15 then 'Date plus'
+when 16 then 'Trading Yesterday' 
+when 17 then 'P&L date' 
+when 18 then 'P&L Yesterday'  
+when 19 then 'Date Shifter'
+when 23 then 'Reporting Date'
+when 24 then 'Reporting Shifter Date'
+else ' ' end as M_COMP_DATE2,
+DYN_TABLE_DEFINITION.M_DESC as M_DESC,
+-- the compute sensitivity flag is only available for transaction dynamic table (class type=0).
+-- If not transaction, then automatically set to 0
+case DYN_TABLE_DEFINITION.M_CLASS_TYPE
+when 0 then DYN_TABLE_DEFINITION.COMPUTE_SENSI_F
+else 0 end as M_SENSI_F,
+DYN_TABLE_DEFINITION.M_CLASS as M_CRE_CLASS,
+-- The flag M_POST_SPE_F takes the value Yes if the dynamic table is defined with a postfilter containing RQWHERE or TBLFIELD
+case coalesce(DYN_TABLE_DEFINITION.POST_F_SPE_F,'Empty')
+when 'Empty' then 'No'
+else 'Yes' end as M_POST_SPE_F,
+-- The flag M_PRE_SPE_F takes the value Yes if the dynamic table is defined with a prefilter expression containing RQWHERE or TBLFIELD
+case coalesce(DYN_TABLE_DEFINITION.PRE_SPE_F,'Empty')
+when 'Empty' then 'No'
+else 'Yes' end as M_PRE_SPE_F
+from
+(select
+'Murex' as DYN_TABLE_OWNER,
+DYN1.M_CREATION as DYN_TABLE_LABEL,
+DYN1.M_F_CNSVIEW as CNS_FLAG,
+DYN1.M_F_SELPFL as BUILT_ON,
+POST1.M_CREATION as POST_FILTER_F,
+DYN1.M_CLASS_TYPE,
+DYN1.M_CLASS,
+case DYN1.M_F_CMPNO
+-- disable compute ticked then compute sensitivities is not activated by definition
+when 1 then 0
+else DYN1.M_F_SVCMP end as COMPUTE_SENSI_F,
+DYN1.M_DT_TYPE0 as DATE_COMP0,
+DYN1.M_DT_TYPE1 as DATE_COMP1,
+DYN1.M_DT_TYPE2 as DATE_COMP2,
+DYN1.M_DESC,
+POST_DEF1.M_CREATION as POST_F_SPE_F,
+PRE_DEF1.M_CREATION as PRE_SPE_F
+from DYNDBF1#TRN_DYND_DBF DYN1 left outer join (select distinct M_CREATION from DYNDBF1#TRN_DYNO_DBF where M_USAGE=2) POST1 on (POST1.M_CREATION=DYN1.M_CREATION) left outer join (select distinct M_CREATION from DYNDBF1#TRN_DYNO_DBF where (M_FORMULA like '%RQWHERE%' or M_FORMULA like '%TBLFIELD%') and M_USAGE=2) POST_DEF1 on (POST_DEF1.M_CREATION=DYN1.M_CREATION) left outer join (select distinct M_CREATION from DYNDBF1#TRN_DYNO_DBF where (M_FORMULA like '%RQWHERE%' or M_FORMULA like '%TBLFIELD%') and M_USAGE in (0,1)) PRE_DEF1 on (PRE_DEF1.M_CREATION=DYN1.M_CREATION)
+union all
+select
+'User' as DYN_TABLE_OWNER,
+DYN2.M_CREATION as DYN_TABLE_LABEL,
+DYN2.M_F_CNSVIEW as CNS_FLAG,
+DYN2.M_F_SELPFL as BUILT_ON,
+POST2.M_CREATION as POST_FILTER_F,
+DYN2.M_CLASS_TYPE,
+DYN2.M_CLASS,
+case DYN2.M_F_CMPNO
+-- disable compute ticked then compute sensitivities is not activated by definition
+when 1 then 0
+else DYN2.M_F_SVCMP end as COMPUTE_SENSI_F,
+DYN2.M_DT_TYPE0 as DATE_COMP0,
+DYN2.M_DT_TYPE1 as DATE_COMP1,
+DYN2.M_DT_TYPE2 as DATE_COMP2,
+DYN2.M_DESC,
+POST_DEF2.M_CREATION as POST_F_SPE_F,
+PRE_DEF2.M_CREATION as PRE_SPE_F
+from DYNDBF2#TRN_DYND_DBF DYN2 left outer join (select distinct M_CREATION from DYNDBF2#TRN_DYNO_DBF where M_USAGE=2) POST2 on (POST2.M_CREATION=DYN2.M_CREATION) left outer join (select distinct M_CREATION from DYNDBF2#TRN_DYNO_DBF where (M_FORMULA like '%RQWHERE%' or M_FORMULA like '%TBLFIELD%') and M_USAGE=2) POST_DEF2 on (POST_DEF2.M_CREATION=DYN2.M_CREATION) left outer join (select distinct M_CREATION from DYNDBF2#TRN_DYNO_DBF where (M_FORMULA like '%RQWHERE%' or M_FORMULA like '%TBLFIELD%') and M_USAGE in (0,1)) PRE_DEF2 on (PRE_DEF2.M_CREATION=DYN2.M_CREATION)
+union all
+select
+'Murex Additional' as DYN_TABLE_OWNER,
+DYN3.M_CREATION as DYN_TABLE_LABEL,
+DYN3.M_F_CNSVIEW as CNS_FLAG,
+DYN3.M_F_SELPFL as BUILT_ON,
+POST3.M_CREATION as POST_FILTER_F,
+DYN3.M_CLASS_TYPE,
+DYN3.M_CLASS,
+case DYN3.M_F_CMPNO
+-- disable compute ticked then compute sensitivities is not activated by definition
+when 1 then 0
+else DYN3.M_F_SVCMP end as COMPUTE_SENSI_F,
+DYN3.M_DT_TYPE0 as DATE_COMP0,
+DYN3.M_DT_TYPE1 as DATE_COMP1,
+DYN3.M_DT_TYPE2 as DATE_COMP2,
+DYN3.M_DESC,
+POST_DEF3.M_CREATION as POST_F_SPE_F,
+PRE_DEF3.M_CREATION as PRE_SPE_F
+from DYNDBF3#TRN_DYND_DBF DYN3 left outer join (select distinct M_CREATION from DYNDBF3#TRN_DYNO_DBF where M_USAGE=2) POST3 on (POST3.M_CREATION=DYN3.M_CREATION) left outer join (select distinct M_CREATION from DYNDBF3#TRN_DYNO_DBF where (M_FORMULA like '%RQWHERE%' or M_FORMULA like '%TBLFIELD%') and M_USAGE=2) POST_DEF3 on (POST_DEF3.M_CREATION=DYN3.M_CREATION) left outer join (select distinct M_CREATION from DYNDBF2#TRN_DYNO_DBF where (M_FORMULA like '%RQWHERE%' or M_FORMULA like '%TBLFIELD%') and M_USAGE in (0,1)) PRE_DEF3 on (PRE_DEF3.M_CREATION=DYN3.M_CREATION)
+union all
+select
+'User Additional' as DYN_TABLE_OWNER,
+DYN4.M_CREATION as DYN_TABLE_LABEL,
+DYN4.M_F_CNSVIEW as CNS_FLAG,
+DYN4.M_F_SELPFL as BUILT_ON,
+POST4.M_CREATION as POST_FILTER_F,
+DYN4.M_CLASS_TYPE,
+DYN4.M_CLASS,
+case DYN4.M_F_CMPNO
+-- disable compute ticked then compute sensitivities is not activated by definition
+when 1 then 0
+else DYN4.M_F_SVCMP end as COMPUTE_SENSI_F,
+DYN4.M_DT_TYPE0 as DATE_COMP0,
+DYN4.M_DT_TYPE1 as DATE_COMP1,
+DYN4.M_DT_TYPE2 as DATE_COMP2,
+DYN4.M_DESC,
+POST_DEF4.M_CREATION as POST_F_SPE_F,
+PRE_DEF4.M_CREATION as PRE_SPE_F
+from DYNDBF4#TRN_DYND_DBF DYN4 left outer join (select distinct M_CREATION from DYNDBF4#TRN_DYNO_DBF where M_USAGE=2) POST4 on (POST4.M_CREATION=DYN4.M_CREATION) left outer join (select distinct M_CREATION from DYNDBF4#TRN_DYNO_DBF where (M_FORMULA like '%RQWHERE%' or M_FORMULA like '%TBLFIELD%') and M_USAGE=2) POST_DEF4 on (POST_DEF4.M_CREATION=DYN4.M_CREATION) left outer join (select distinct M_CREATION from DYNDBF2#TRN_DYNO_DBF where (M_FORMULA like '%RQWHERE%' or M_FORMULA like '%TBLFIELD%') and M_USAGE in (0,1)) PRE_DEF4 on (PRE_DEF4.M_CREATION=DYN4.M_CREATION)
+) DYN_TABLE_DEFINITION "
+"AU_DYNTABLE_FLDS.REP|-- AU_DYNTABLE_FLDS_REP datamart table definition
+-- This table stores the dynamic tables native and horizontal fields
+select 
+-- Dynamic table owner
+DYN_TABLE_DEFINITION.DYN_TABLE_OWNER as M_OWNER,
+-- Dynamic table label
+rtrim(DYN_TABLE_DEFINITION.M_CREATION) as M_LABEL,
+-- The type of the field, Native or Horizontal
+DYN_TABLE_DEFINITION.FIELD_TYPE as M_FLD_TYPE,
+-- The name of the field
+DYN_TABLE_DEFINITION.FIELD_LABEL as M_FLD_LABEL,
+-- the description of the field
+DYN_TABLE_DEFINITION.M_DUP_DESC as M_FLD_DESC,
+-- the horizontal field formula
+DYN_TABLE_DEFINITION.FIELD_FORMULA as M_HF_FORMULA
+from
+(select
+'Murex' as DYN_TABLE_OWNER,
+DYN_FIELDS1.FIELD_TYPE as FIELD_TYPE,
+DYN_FIELDS1.M_FLD_LABEL as FIELD_LABEL,
+DYN_FIELDS1.FIELD_FORMULA,
+DYN_FIELDS1.M_CREATION,
+DYN_FIELDS1.M_DUP_DESC
+from  (select 'Native' as FIELD_TYPE,M_FLD_LABEL, M_CREATION, '' as FIELD_FORMULA, '' as M_DUP_DESC  from DYNDBF1#TRN_DYNF_DBF 
+       union all 
+       select 'Horizontal' as FIELD_TYPE,M_DUP_LABEL as M_FLD_LABEL, M_CREATION,rtrim(M_DUP_DEF0) as FIELD_FORMULA, M_DUP_DESC from DYNDBF1#TRN_DYNU_DBF  
+       ) DYN_FIELDS1 
+union all
+select
+'User' as DYN_TABLE_OWNER,
+DYN_FIELDS2.FIELD_TYPE as FIELD_TYPE,
+DYN_FIELDS2.M_FLD_LABEL as FIELD_LABEL,
+DYN_FIELDS2.FIELD_FORMULA,
+DYN_FIELDS2.M_CREATION,
+DYN_FIELDS2.M_DUP_DESC
+from  (select 'Native' as FIELD_TYPE,M_FLD_LABEL, M_CREATION, '' as FIELD_FORMULA, '' as M_DUP_DESC  from DYNDBF2#TRN_DYNF_DBF 
+       union all 
+       select 'Horizontal' as FIELD_TYPE,M_DUP_LABEL as M_FLD_LABEL, M_CREATION,rtrim(M_DUP_DEF0) as FIELD_FORMULA, M_DUP_DESC from DYNDBF2#TRN_DYNU_DBF
+       ) DYN_FIELDS2 
+union all
+select
+'Murex Additional' as DYN_TABLE_OWNER,
+DYN_FIELDS3.FIELD_TYPE as FIELD_TYPE,
+DYN_FIELDS3.M_FLD_LABEL as FIELD_LABEL,
+DYN_FIELDS3.FIELD_FORMULA,
+DYN_FIELDS3.M_CREATION,
+DYN_FIELDS3.M_DUP_DESC
+from (select 'Native' as FIELD_TYPE,M_FLD_LABEL, M_CREATION, '' as FIELD_FORMULA, '' as M_DUP_DESC  from DYNDBF3#TRN_DYNF_DBF 
+      union all 
+      select 'Horizontal' as FIELD_TYPE,M_DUP_LABEL as M_FLD_LABEL, M_CREATION,rtrim(M_DUP_DEF0) as FIELD_FORMULA, M_DUP_DESC from DYNDBF3#TRN_DYNU_DBF  
+      ) DYN_FIELDS3
+union all
+select
+'User Additional' as DYN_TABLE_OWNER,
+DYN_FIELDS4.FIELD_TYPE as FIELD_TYPE,
+DYN_FIELDS4.M_FLD_LABEL as FIELD_LABEL,
+DYN_FIELDS4.FIELD_FORMULA,
+DYN_FIELDS4.M_CREATION,
+DYN_FIELDS4.M_DUP_DESC
+from (select 'Native' as FIELD_TYPE,M_FLD_LABEL, M_CREATION, '' as FIELD_FORMULA, '' as M_DUP_DESC  from DYNDBF4#TRN_DYNF_DBF 
+      union all 
+      select 'Horizontal' as FIELD_TYPE,M_DUP_LABEL as M_FLD_LABEL, M_CREATION,rtrim(M_DUP_DEF0) as FIELD_FORMULA, M_DUP_DESC from DYNDBF4#TRN_DYNU_DBF  
+      ) DYN_FIELDS4
+) DYN_TABLE_DEFINITION"
+"AU_EXCL_ITEMS.REP   |-- SQL query to retrieve the datamodel for exclusion items
+select
+EXCL_ITEM.M_LABEL as M_ITEM, -- Excluded item label --
+cast(DM_OBJ_DEF.M_TYPE as numeric(2)) as M_OBJ_TYPE, -- Object type ---
+cast(EXCL_LIST.M_REFERENCE as numeric(10)) as M_LIST_REF, -- Excluded list reference ---
+EXCL_LIST.M_LABEL as M_EXCL_LIST, -- Excluded list label ---
+DM_OBJ_DEF.M_LABEL as M_OBJ_LBL, -- Label of excluded object ---
+DM_OBJ_DEF.M_DESC as M_OBJ_DES, -- Object description ---
+EXCL_LIST.M_DESCRIPTION as M_LIST_DESC, -- Exclusion list description
+AUDIT_TRADE_EXCL.M_USER as M_USER_TRADE, -- The user adding the trade in the list
+AUDIT_TRADE_EXCL.M_CMP_DATE as M_DATE_TRADE -- The computer date when the trade has been added in the list
+from 
+DM_EXCL_LIST_DBF 	EXCL_LIST -- Containing defined lists---
+left outer join DM_EXCL_SETLIST_DBF SETLIST on EXCL_LIST.M_REFERENCE=SETLIST.M_LIST_REF-- Containing the mapping between batches and lists---
+left outer join ACT_SET_DBF 	DM_OBJ_DEF 	on	SETLIST.M_SET_REF = DM_OBJ_DEF.M_REF-- Containing datamart object definition--
+left outer join DM_EXCL_ITEM_DBF 	EXCL_ITEM on EXCL_ITEM.M_LIST_REF = EXCL_LIST.M_REFERENCE-- Excluded items ---
+-- this join to get the user and the computing date when the trade has been added to the list
+left outer join (select M_USER, M_CMP_DATE, M_AFTER, M_LIST_REF from DM_AUDIT_EXCL_LIST_DBF AUDIT_EXCL where M_OBJECT='trade' and 
+M_REFERENCE=(select max(M_REFERENCE) from DM_AUDIT_EXCL_LIST_DBF AUDIT_EXCL_BIS where AUDIT_EXCL_BIS.M_LIST_REF=AUDIT_EXCL.M_LIST_REF and AUDIT_EXCL_BIS.M_AFTER=AUDIT_EXCL.M_AFTER)) AUDIT_TRADE_EXCL on 
+(AUDIT_TRADE_EXCL.M_AFTER=EXCL_ITEM.M_LABEL and AUDIT_TRADE_EXCL.M_LIST_REF=EXCL_LIST.M_REFERENCE)"
+"AU_INDEX.REP        |select
+    -- Object reference
+    AUDINFO.M_OBJ_REF as M_OBJ_REF,
+	-- Class id
+    AUDINFO.M_CLASSID as M_CLASSID,
+	-- Audit timestamp
+   CAST(AUDINFO.M__DT_TS as VARCHAR(26)) as M_AUD_TIME,
+	-- Audit action
+	case
+		when AUDINFO.M_ACTION=1 then 'Insert'
+		when AUDINFO.M_ACTION=2 then 'Modify'
+		else cast(AUDINFO.M_ACTION as char(6)) -- there should not be others
+	end as M_AUD_ACT,
+	-- Audit user
+	CONN.M_USER_NAME as M_AUD_USER,
+	-- Audit group
+	CONN.M_GROUP_NAME as M_AUD_GRP,
+	-- Audit client machine
+	CONN.M_STAT_NAME as M_AUD_CL_MAC,
+	-- Audit client ip
+	CONN.M_STAT_IP as M_AUD_CL_IP	
+from
+    STAT_AUD_DBF AUDINFO 
+	left join MX_USER_CONNECTION_DBF CONN on AUDINFO.M_CON_ID=CONN.M_REFERENCE"
+"AU_REPCONF.REP      |-- AU_REPCONF_REP
+-- This table stores the configuration from the processing script to the dynamic table source of the datamart tables.
+-- The entry points are the feeders, datamart extractions and stored procedures stored in ACT_BAT_DBF.
+ 
+select 
+PS.M_NAME as M_PS_LABEL,
+BATCH_NAME.M_LABEL as M_BATCH_LBL,
+BATCH_NAME.M_DESC as M_BATCH_DESC,
+case BATCH_NAME.M_TYPE
+when 1 then 'Batch of feeders'
+when 2 then 'Batch of extractions'
+when 3 then 'Batch of stored procedures'
+end as M_BATCH_TYPE,
+case BATCH_NAME.M_DATACOMP 
+when 'Y' then 'Yes'
+when 'N' then 'No'
+end as M_DATA_PRE_F,
+case
+when BATCH_NAME.M_TYPE=3 then 'N/A' 
+else coalesce(BATCH_NAME.M_TAGDATA,'') end as M_LBL_DATA,
+-- meaningless to have historization mode when data are precomputed
+case BATCH_NAME.M_DATACOMP
+when 'Y' then 'N/A'
+else case BATCH_NAME.M_DATAHIS
+     when 0 then 'One dataset'
+     when 1 then 'One dataset per day'
+     when 2 then 'One dataset per run'
+     else null end
+end as M_HIS_MODE,
+case BATCH_NAME.M_DATACOMP
+when 'Y' then 'N/A'
+else coalesce(BATCH_NAME.M_FLTTEMP,'') end as M_GLOB_F_LBL,
+case BATCH_NAME.M_DATACOMP
+when 'Y' then 'N/A'
+else
+	-- We retrieve computing date 0
+	case COMP_DATE0.M_TYPE
+	when 0 then 'No Selection' 
+	when 1 then 'Today' 
+	when 2 then 'Yesterday' 
+	when 3 then 'Origin (Monthly)' 
+	when 4 then 'Date minus' 
+	when 5 then 'Inception' 
+	when 6 then 'Historical date' 
+	when 7 then 'User defined' 
+	when 8 then 'Accounting date' 
+	when 9 then 'Relative previous' 
+	when 10 then 'Relative next' 
+	when 11 then 'Origin (Simul)'
+	when 12 then 'Origin (Daily)' 
+	when 13 then 'Origin (Yearly)' 
+	when 14 then 'Trading date' 
+	when 15 then 'Date plus'
+	when 16 then 'Trading Yesterday' 
+	when 17 then 'P&L date' 
+	when 18 then 'P&L Yesterday'  
+	when 19 then 'Date Shifter'
+	when 23 then 'Reporting Date'
+	when 24 then 'Reporting Shifter Date'
+	else '' end
+end	as M_COMP_DATE0,
+-- We retrieve computing date 1
+case BATCH_NAME.M_DATACOMP
+when 'Y' then 'N/A'
+else
+	-- We retrieve computing date 0
+	case COMP_DATE1.M_TYPE
+	when 0 then 'No Selection' 
+	when 1 then 'Today' 
+	when 2 then 'Yesterday' 
+	when 3 then 'Origin (Monthly)' 
+	when 4 then 'Date minus' 
+	when 5 then 'Inception' 
+	when 6 then 'Historical date' 
+	when 7 then 'User defined' 
+	when 8 then 'Accounting date' 
+	when 9 then 'Relative previous' 
+	when 10 then 'Relative next' 
+	when 11 then 'Origin (Simul)'
+	when 12 then 'Origin (Daily)' 
+	when 13 then 'Origin (Yearly)' 
+	when 14 then 'Trading date' 
+	when 15 then 'Date plus'
+	when 16 then 'Trading Yesterday' 
+	when 17 then 'P&L date' 
+	when 18 then 'P&L Yesterday'  
+	when 19 then 'Date Shifter'
+	when 23 then 'Reporting Date'
+	when 24 then 'Reporting Shifter Date'
+	else '' end
+end	as M_COMP_DATE1,
+-- We retrieve computing date 2
+case BATCH_NAME.M_DATACOMP
+when 'Y' then 'N/A'
+else
+	-- We retrieve computing date 2
+	case COMP_DATE2.M_TYPE
+	when 0 then 'No Selection' 
+	when 1 then 'Today' 
+	when 2 then 'Yesterday' 
+	when 3 then 'Origin (Monthly)' 
+	when 4 then 'Date minus' 
+	when 5 then 'Inception' 
+	when 6 then 'Historical date' 
+	when 7 then 'User defined' 
+	when 8 then 'Accounting date' 
+	when 9 then 'Relative previous' 
+	when 10 then 'Relative next' 
+	when 11 then 'Origin (Simul)'
+	when 12 then 'Origin (Daily)' 
+	when 13 then 'Origin (Yearly)' 
+	when 14 then 'Trading date' 
+	when 15 then 'Date plus'
+	when 16 then 'Trading Yesterday' 
+	when 17 then 'P&L date' 
+	when 18 then 'P&L Yesterday'  
+	when 19 then 'Date Shifter'
+	when 23 then 'Reporting Date'
+	when 24 then 'Reporting Shifter Date'
+	else '' end
+end	as M_COMP_DATE2,
+-- We count the number of batch of feeders having the same label of data but with different historization mode
+case BATCH_NAME.M_TYPE
+-- the object is a batch of feeders
+when 1 then 
+    case BATCH_NAME.M_DATAHIS
+    -- the batch is in mode one data set
+    when 0 then HISMODE1.NUMBER_BATCH
+    -- the batch is in mode one data set per day
+    when 1 then HISMODE0.NUMBER_BATCH
+    else 0 end
+else 0 end as M_NUM_H_MODE,
+case 
+-- If data are precomputed or it is a batch of stored procedure, no scanner template
+when (BATCH_NAME.M_DATACOMP='Y' or BATCH_NAME.M_TYPE=3) then 'N/A'
+else coalesce(SCANNER.M_TEMPLATE,'') end as M_SCAN_TMPL,
+case BAT.M_EXECTX
+when 5 then 'Feeder'
+when 7 then 'Extraction'
+when 8 then 'Stored procedure'
+end as M_ITD_TYPE,
+case BAT.M_CATEG
+when 0 then ''
+when 1 then 'accounting'
+when 2 then 'audit'
+when 3 then 'cash_management'
+when 4 then 'credit_risk'
+when 5 then 'euro'
+when 6 then 'fixing'
+when 7 then 'security_mngmt'
+when 8 then 'market_param'
+when 9 then 'market_risk'
+when 10 then 'open_position'
+when 11 then 'P&L'
+when 12 then 'payment_module'
+when 13 then 'regulatory'
+when 14 then 'static_tables'
+when 15 then 'risk_matrix'
+else CATEG.M_LABEL end as M_ITD_C,
+BAT.M_LABEL as M_ITD_LBL,
+BAT.M_DESC as M_ITD_DESC,
+ACT_DYN.M_OUTPUT as M_DM_LABEL,
+case DM.M_MUREX
+when 0 then 'Client'
+when 1 then 'Murex' end as M_DM_OWNER,
+-- Number of Datamart tables configured in the ITD object
+/*
+case BAT.M_EXECTX
+when 5 then NUM_TABLES.NUM_DM_TABLE
+else 0 end as M_NUM_TABLES,*/
+cast(NUM_TABLES.NUM_DM_TABLE as numeric(2,0)) as M_NUM_TABLES, 
+-- Dynamic table source owner
+case DYN.M_DYN_TABLE_DIR_TYPE
+when 0 then 'Murex'
+when 1 then 'Murex Additional'
+when 2 then 'User'
+when 3 then 'User Additional' end as M_DYN_OWNER,
+case DM.M_TYPE
+when 0 then rtrim(DYN.M_DYN_TABLE)
+else 'Not Applicable' end as M_DYN_LABEL,
+-- Filter class
+FILTER.M_CLASS as M_FILTER_C,
+-- Number of different historization mode configured for this label of data. Relevant for batch of feeders only
+cast(NUMBER_HIS_MODE.NUMBER_DIF_HIS_MODE as numeric(1,0))  as M_NUM_D_MODE,
+-- If the batch is configured to compute data with real time market data, the flag will take the value Yes and No otherwise
+case
+when BATCH_NAME.M_DATACOMP='Y' then 'N/A' 
+when (coalesce(rtrim(COMP_DATE0.M_MDCS_SETT),'No')='connected' or coalesce(rtrim(COMP_DATE1.M_MDCS_SETT),'No')='connected' or coalesce(rtrim(COMP_DATE2.M_MDCS_SETT),'No')='connected')
+then 'Yes'
+else 'No' end as M_REAL_TIME
+-- ACT_BAT_DBF contains information about the intraday reporting objects (extractions, feeders, stored procedures)
+from ACT_BAT_DBF BAT 
+-- ACT_DYN_DBF contains information about reporting objects (feeders, extractions or stored procedures) references in the batches 
+left outer join ACT_DYN_DBF ACT_DYN on (BAT.M_REF=ACT_DYN.M_REF)
+-- ACT_SETREP_DBF contains batches configuration of execution 
+left outer join ACT_SETREP_DBF BATCH_DEF on (BATCH_DEF.M_REFBAT=BAT.M_REF)
+-- ACT_SET_DBF contains batches main screen configuration
+left outer join ACT_SET_DBF BATCH_NAME on (BATCH_NAME.M_REF=BATCH_DEF.M_REFSET)
+-- careful rtrim is not null oracle specific
+left outer join DAPFILTER_DBF FILTER on (FILTER.M_LABEL=BATCH_NAME.M_FLTTEMP and rtrim(BATCH_NAME.M_FLTTEMP) is not null)
+left outer join SCANNERCFG_DBF SCANNER on (SCANNER.M_REFERENCE=BATCH_NAME.M_SCNTMPL)
+left outer join (select M_TYPE, M_FILTER_REF, M_MDCS_SETT from DAPFLT_DAT_DBF COMP_DATE where COMP_DATE.M_INDEX=0) COMP_DATE0 on (COMP_DATE0.M_FILTER_REF=FILTER.M_FILTER_REF)
+left outer join (select M_TYPE, M_FILTER_REF, M_MDCS_SETT from DAPFLT_DAT_DBF COMP_DATE where COMP_DATE.M_INDEX=1) COMP_DATE1 on (COMP_DATE1.M_FILTER_REF=FILTER.M_FILTER_REF)
+left outer join (select M_TYPE, M_FILTER_REF, M_MDCS_SETT from DAPFLT_DAT_DBF COMP_DATE where COMP_DATE.M_INDEX=2) COMP_DATE2 on (COMP_DATE2.M_FILTER_REF=FILTER.M_FILTER_REF)
+left outer join PROCESS#PS_ITEM_DBF ITEM on (ITEM.M_PARAM_LAB2=BATCH_NAME.M_LABEL and ITEM.M_UNIT in ('REP_BATCHES_FEED','REP_BATCHES_EXT','REP_BATCHES_PROC'))
+-- to retrieve the number of tables configured in the feeder
+left outer join (select count(*) as NUM_DM_TABLE, M_REF from ACT_DYN_DBF group by M_REF) NUM_TABLES on NUM_TABLES.M_REF=BAT.M_REF
+left outer join PROCESS#PS_SCRPT_DBF PS on (PS.M_REF=ITEM.M_REF)
+left outer join RPO_DMSETUP_TABLE_DBF DM on (ACT_DYN.M_OUTPUT=DM.M_LABEL)
+left outer join RPO_DMSETUP_DYN_TABLE_DBF DYN on (DM.M_REFERENCE=DYN.M_REFERENCE)
+left outer join RPO_CATEG_DBF CATEG on (BAT.M_CATEG=CATEG.M_REF)
+-- This table counts the number of batch of feeders having the same label of data with historisation mode = One data set only in case the current batch is in mode one data set per day  
+left outer join (select count(*) as NUMBER_BATCH, M_TAGDATA from ACT_SET_DBF where M_DATAHIS=0 and M_TYPE=1 group by M_TAGDATA) HISMODE0 on (HISMODE0.M_TAGDATA=BATCH_NAME.M_TAGDATA and BATCH_NAME.M_DATAHIS=1)
+-- This table counts the number of batch of feeders having the same label of data with historisation mode = One data set per day in case the current batch is in mode one data set
+left outer join (select count(*) as NUMBER_BATCH, M_TAGDATA from ACT_SET_DBF where M_DATAHIS=1 and M_TYPE=1 group by M_TAGDATA) HISMODE1 on (HISMODE1.M_TAGDATA=BATCH_NAME.M_TAGDATA and BATCH_NAME.M_DATAHIS=0)
+-- To retrieve the different historization mode used by batch of feeders for a label of data
+left outer join (select count(distinct M_DATAHIS) as NUMBER_DIF_HIS_MODE, M_TAGDATA  from ACT_SET_DBF where M_TYPE=1 group by M_TAGDATA) NUMBER_HIS_MODE on (NUMBER_HIS_MODE.M_TAGDATA=BATCH_NAME.M_TAGDATA)
+where 
+BAT.M_EXECTX in (5,7,8)   
+order by M_PS_LABEL, M_BATCH_LBL"
+"BAB_ACC_USER_RM.REP |select distinct
+M_CIF,M_TREASURYRM,M_ACCOFFICER,M_REGION 
+from TABLE#LIST#BAB_USR__DBF"
+"BAB_DEALER_LIMIT.REP|/* THIS TABLE IS CREATED FOR SAS SYSTEM  -  CR 721781 - Murex Integration with SAS
+	MX.ALL.UserGroupProfile  ( lookup table) USER SENIORITY BASED ON GROUP'S 
+	BAB.ALL.PreDealLimits ( lookup table) -- USER BASED LIMITS ARE CONFIGURED
+*/ 
+
+
+SELECT 
+
+ M_USER_GROUP,
+ M_GRP_SERITY,
+ M_CURRENCY,
+ CAST(M_DLR_LMTAMT AS NUMBER(26,2)) AS M_DLR_LMTAMT,
+ CAST(@REPORTING_DATE:D AS DATE) AS M_REP_DATE  -- AS OF YESTERDAY - REPORTING DATE 
+ 
+ FROM 
+ 
+ ( 
+ 
+		SELECT 
+			
+			TRIM(UDTB179.M_USER_GROUP) AS M_USER_GROUP,
+			TRIM(UDTB179.M_SENIORITY) AS M_GRP_SERITY,  -- GROUP_SENIORITY
+			TRIM(UDTB264.M_CURR_CHECK) AS M_CURRENCY,
+			SUM(UDTB264.M_AMOUNT) AS M_DLR_LMTAMT  -- DEALER LIMIT AMOUNT
+			
+			
+			FROM 
+				UDTB179_DBF UDTB179 -- MX.ALL.UserGroupProfile  ( lookup table)
+				LEFT OUTER JOIN UDTB264_DBF UDTB264  -- BAB.ALL.PreDealLimits ( lookup table)
+				ON TRIM(UDTB179.M_SENIORITY)=TRIM(UDTB264.M_SENIORITY)
+			WHERE 
+				TRIM((UDTB179.M_USER_GROUP)) IS NOT NULL			
+			GROUP BY
+			TRIM(UDTB179.M_USER_GROUP),
+			TRIM(UDTB179.M_SENIORITY),
+			TRIM(UDTB264.M_CURR_CHECK)
+			
+ ) "
+"BAB_GLCD_INCLUDE.REP|select M_LINE_NO, M_CATEGORY, M_NOSTRO_ACCOUNT_NO as M_NOS_ACC, M_SOURCE, M_SIGN_FLAG from UDTB277_DBF"
+"BAB_GROUP_PORTFL.REP|
+/* 
+	 BAB_GROUP_PORTFL_REP TABLE IS CREATED FOR SAS SYSTEM  -  CR 721781 - Murex Integration with SAS
+	 MUREX GROUP ( FOP,MO..ect ) INFORMATION WITH PORTFOLIO templates assigned details
+	 
+*/ 
+
+
+SELECT 
+
+ M_GROUP_NAME,
+ M_GROUP_DEF,
+ M_PRTF_TEMPL,
+ M_PORTFOLIO,
+ M_PORTF_DESC,
+ CAST(@REPORTING_DATE:D AS DATE) AS M_REP_DATE  -- AS OF YESTERDAY - REPORTING DATE 
+ 
+ FROM 
+ 
+ ( 
+ 
+	SELECT DISTINCT 
+
+		TRIM(MX_GROUP.M_LABEL) M_GROUP_NAME,
+
+		TRIM(TRN_GRPD.M_LABEL) AS M_GROUP_DEF,
+		
+		TRIM(MUB_TPL.M_LABEL) AS M_PRTF_TEMPL,
+		
+		TRIM(MUB_TREE.M_LABEL) AS M_PORTFOLIO,
+		
+		TRIM(TRN_PFLD.M_DESC) AS M_PORTF_DESC
+
+
+	FROM
+	
+	MX_GROUP_DBF MX_GROUP  -- GROUP BASED TABLE 
+	
+	LEFT OUTER JOIN  TRN_GRPD_DBF TRN_GRPD  -- GROUP DESCRIPTION
+		ON MX_GROUP.M_REFERENCE=TRN_GRPD.M_EXT_REF
+	
+	LEFT OUTER JOIN MUB#MUB_TPL_DBF  MUB_TPL
+		ON TRN_GRPD.M_MUB_TMPL= MUB_TPL.M_REFERENCE
+
+	LEFT OUTER JOIN MUB#MUB_TREE_DBF   MUB_TREE
+		ON TRIM(MUB_TPL.M_TRE_GROUP)=TRIM(MUB_TREE.M_TRE_GROUP)
+
+	LEFT OUTER JOIN MUB#GRP_RGT1_DBF  GRP_RGT1
+		ON MUB_TREE.M_REF= GRP_RGT1.M_NODE_REF
+
+	JOIN TRN_PFLD_DBF  TRN_PFLD
+		ON TRIM(MUB_TREE.M_LABEL)= TRIM(TRN_PFLD.M_DSP_LABEL)
+	
+	WHERE 
+	(TRIM(TRN_GRPD.M_LABEL)  IS NOT NULL) 
+	--AND  (TRIM(TYPOLOGY.M_LABEL)<>' ')
+	--AND TRIM(MX_GROUP.M_LABEL)='BN_DR'
+
+ ) 
+ ORDER BY 
+ M_GROUP_NAME,
+ M_GROUP_DEF,
+ M_PRTF_TEMPL,
+ M_PORTFOLIO"
+"BAB_GROUP_TYPOGY.REP|
+/* 
+	 BAB_GROUP_TYPOGY_REP TABLE IS CREATED FOR SAS SYSTEM  -  CR 721781 - Murex Integration with SAS
+	 MUREX GROUP ( FOP,MO..ect ) INFORMATION WITH typology templates assigned 
+	 
+*/ 
+
+
+SELECT 
+
+ M_GROUP_NAME,
+ M_GROUP_DEF,
+ M_GRUP_TEMPL,
+ M_TYPOLOGY,
+ M_TYPLGY_DES,
+ CAST(@REPORTING_DATE:D AS DATE) AS M_REP_DATE  -- AS OF YESTERDAY - REPORTING DATE 
+ 
+ FROM 
+ 
+ ( 
+ 
+	SELECT DISTINCT 
+
+		TRIM(MX_GROUP.M_LABEL) M_GROUP_NAME,
+
+		TRIM(TRN_GRPD.M_LABEL) AS M_GROUP_DEF,
+
+		TRIM(STP_RGH_TREE.M_LABEL) AS M_GRUP_TEMPL,
+		--STP_RGH_TREE.M_REFERENCE,
+		--STP_RGH_NODE.M_TREE,STP_RGH_NODE.M_TYPO_REF,
+		--TYPOLOGY.M_REFERENCE,
+		TRIM(TYPOLOGY.M_LABEL) AS M_TYPOLOGY,
+		TRIM(TYPOLOGY.M_DESC) AS M_TYPLGY_DES
+
+
+	FROM
+	
+	MX_GROUP_DBF MX_GROUP
+	
+	LEFT OUTER JOIN  TRN_GRPD_DBF TRN_GRPD
+		ON MX_GROUP.M_REFERENCE=TRN_GRPD.M_EXT_REF
+	
+	LEFT OUTER JOIN GRP_STP_DBF GRP_STP  -- RTPRIGHTSELEMENTS 
+		ON TRN_GRPD.M_REFERENCE=GRP_STP.M_GRP_REF
+	
+	LEFT OUTER JOIN STP_RGH_TPL_GBL_DBF STP_RGH_TPL_GBL  -- 
+		ON GRP_STP.M_RIGHT_DATA=STP_RGH_TPL_GBL.M_REFERENCE
+	
+	LEFT OUTER JOIN STP_RGH_GBL2BO_DBF  STP_RGH_GBL2BO  
+		ON STP_RGH_TPL_GBL.M_REFERENCE=STP_RGH_GBL2BO.M_CTN
+	
+	LEFT OUTER JOIN STP_RGH_TPL_BO_DBF STP_RGH_TPL_BO --   --  -- BUSINESS OBJECT TEMPLATE TABLE 
+		ON STP_RGH_GBL2BO.M_REF=STP_RGH_TPL_BO.M_REFERENCE
+	
+	LEFT OUTER JOIN STP_RGH_TREE_DBF STP_RGH_TREE --   -- GROUP TEMPLATE TABLE 
+		ON STP_RGH_TPL_BO.M_TREE=STP_RGH_TREE.M_REFERENCE
+	
+	LEFT OUTER JOIN STP_RGH_NODE_DBF STP_RGH_NODE --  -- GROUP TEMPLATE TABLE 
+		ON STP_RGH_TREE.M_REFERENCE=STP_RGH_NODE.M_TREE
+	
+	LEFT OUTER JOIN  TYPOLOGY_DBF  TYPOLOGY
+		ON STP_RGH_NODE.M_TYPO_REF=TYPOLOGY.M_REFERENCE
+	
+	WHERE 
+	(TRIM(TRN_GRPD.M_LABEL)  IS NOT NULL)  
+	AND  (TRIM(TYPOLOGY.M_LABEL)<>' ')
+	--AND TRIM(MX_GROUP.M_LABEL)='BN_DR'
+
+ ) 
+ ORDER BY 
+  M_GROUP_NAME,
+  M_GROUP_DEF,
+  M_GRUP_TEMPL,
+  M_TYPOLOGY"
+"BAB_LKP_AST_LIBT.REP|/* 
+As per the CR  744241 request 
+THIS LOOKUP TABLE IS CREATED FOR MIS TEAM ( Treasury Business Solutions) FOR TYPOLOGIES SEGRIGATION BASED ON ASSET AND LIABILITY 
+IN FUTURE - BUSINESS WILL THE DETAILS FROM MO GROUP ( Thofeeq Mohammed Shaik)
+
+*/
+
+SELECT
+TRIM(M_TYPOLOGY) AS M_TYPOLOGY,
+CASE WHEN TRIM(M_ASSET_LIABILITY)=1 THEN 'ASSET'
+     WHEN TRIM(M_ASSET_LIABILITY)=2 THEN 'LIABILITY'
+	 ELSE NULL
+	 END AS M_ASET_LBLTY,
+  CAST(@REPORTING_DATE:D AS DATE) AS M_REP_DATE  -- AS OF YESTERDAY - REPORTING DATE 
+FROM
+UDTB281_DBF
+"
+"BAB_LKP_INDR_CCY.REP|/* 
+As per the CR  794445 request 
+THIS LOOKUP TABLE IS CREATED FOR Treasury Middle Office team - ""FX Rate Tolerance Report"" in Murex
+IN FUTURE - BUSINESS WILL add THE DETAILS FROM RISK GROUP ( Nasser Mohammed Alshabwi)
+Lookup table -> Group -->  BAB.INDIRECT.CURRENCY
+*/
+
+SELECT 
+TRIM(M_INDIRECT_CCY1) AS M_INDR_CCY1 ,
+TRIM(M_INDIRECT_CCY2)  AS M_INDR_CCY2  ,
+TRIM(M_INDIRECT_CCY_PAIR) AS M_INDR_CCYPR,
+CAST(@REPORTING_DATE:D AS DATE) AS M_REP_DATE  -- AS OF YESTERDAY - REPORTING DATE 
+FROM UDTB282_DBF
+"
+"BAB_LMT_RP_INV.REP  |select 
+M_REPORTNAME as M_REPORTNAME,
+M_REP_LIMITD as M_TARGETMON,
+M_REP_LIMITV as M_TARGETAMT
+from 
+TABLE#LIST#LMT_RP_I_DBF
+union all
+select 
+M_REPORTNAME as M_REPORTNAME,
+M_REP_LIMITD as M_TARGETMON,
+M_REP_LIMITV as M_TARGETAMT
+from 
+TABLE#LIST#LMT_TDD_DBF"
+"BAB_LMT_RP_SALES.REP|select 
+M_REPORTNAME as M_REPORTNAME,
+M_REP_LIMITD as M_TARGETMON,
+M_REP_LIMITV as M_TARGETAMT
+from 
+TABLE#LIST#LMTRP_SA_DBF
+
+union all
+
+select 
+M_REPORTNAME as M_REPORTNAME,
+M_REP_LIMITD as M_TARGETMON,
+M_REP_LIMITV as M_TARGETAMT
+from 
+TABLE#LIST#LMTRP_FX_DBF"
+"BAB_LMT_TRY_LMT.REP |select 
+M_ASSETCLASS, M_ASSET_MAIN, M_LIMIT, M_SUB_CLASS, M_UNRATED
+from TABLE#LIST#BAB_TRYL_DBF"
+"BAB_MM_TYPO.REP     |SELECT 
+	M_MM_TYPOLOGY AS M_MM_TYPO
+	,M_TYPE AS M_TYPE
+ ,M_CLASSIFICATION AS M_CLASS
+ ,M_DIRECTION AS M_DIRECTION
+ ,M_ACCOUNT AS M_ACCOUNT
+ ,M_GL AS M_GL
+ ,M_SIGN AS M_SIGN
+FROM UDTB283_DBF"
+"BAB_PRODUCT_CODE.REP|select M_TYPOLOGY,M_USAGE,M_STRATEGY,M_PRODUCTCODE as M_PROD_CODE,M_CHLD_PRMT from UDTB272_DBF"
+"BAB_SECTOR_LIMIT.REP|select M_LIMIT,M_SECTOR,M_MKT_CON from TABLE#LIST#BAB_SECL_DBF"
+"BAB_USER_GROUP.REP  |
+/* 
+	 BAB_USER_GROUP_REP TABLE IS CREATED FOR SAS SYSTEM  -  CR 721781 - Murex Integration with SAS
+	 MUREX USERS ( TRADERS ) INFORMATION WITH GROUPS ARE ASSIGNED WITH DESIGNATION ( VIA LOOK UP TABLE)
+	 
+   
+*/ 
+
+
+SELECT 
+
+ M_USER_LABEL,
+ M_FULL_NAME,
+ M_USER_DESC,
+ M_GROUP_NAME,
+ M_USER_ROLE,
+ CAST(@REPORTING_DATE:D AS DATE) AS M_REP_DATE  -- AS OF YESTERDAY - REPORTING DATE 
+ 
+ FROM 
+ 
+ ( 
+ 
+		SELECT 
+
+		TRIM(MX_USER.M_LABEL) AS M_USER_LABEL,
+		TRIM(MX_USER.M_FULL_NAME) AS M_FULL_NAME, 
+		TRIM(MX_USER.M_DESC) AS  M_USER_DESC,
+		TRIM(MX_GROUP.M_LABEL) AS  M_GROUP_NAME,
+		TRIM(UDTB179.M_SENIORITY) AS M_USER_ROLE
+
+		FROM 
+
+			MX_USER_DBF MX_USER
+			LEFT OUTER JOIN MX_USER_GROUP_DBF MX_USER_GROUP
+				ON MX_USER.M_REFERENCE=MX_USER_GROUP.M_USER_ID
+			LEFT OUTER JOIN MX_GROUP_DBF MX_GROUP
+				ON MX_USER_GROUP.M_GROUP_ID=MX_GROUP.M_REFERENCE
+			LEFT OUTER JOIN UDTB179_DBF UDTB179 -- MX.ALL.UserGroupProfile  ( lookup table)
+				ON TRIM(MX_GROUP.M_LABEL)=TRIM(UDTB179.M_USER_GROUP)
+ 
+ ) "
+"BIM_VOL.REP         |select SECATM.M_GROUP as M_GROUP, SECATM.M_LABEL   as M_VOLMAPPING, SECATM.M_MATOPTION as M_MATOPTION,
+case
+  when  SECVOL.M_ATM_VOL <> 0   THEN  SECVOL.M_ATM_VOL ELSE SECATM.M_ATM_VOL 
+END as M_ATM_VOL 
+from BIM_SEC_VOL_ATM_REP SECATM left join BIM_SEC_VOL_REP SECVOL 
+on SECATM.M_GROUP=SECVOL.M_GROUP AND SECATM.M_LABEL=SECVOL.M_LABEL AND SECATM.M_MATOPTION=SECVOL.M_MAT_OPTIO
+union 
+select CR_ATM.M_VOL_GROUP as M_GROUP, CR_ATM.M_VOLMAPPIN as M_VOLMAPPING, CR_ATM.M_OPT_MATUR as  M_MATOPTION,
+case
+  when CR_VOL.M_VOLATILIT <> 0   THEN  CR_VOL.M_VOLATILIT ELSE CR_ATM.M_VOLATILIT
+END as M_ATM_VOL
+from BIM_CR_VOL_ATM_REP CR_ATM left join BIM_CR_VOL_REP CR_VOL 
+on CR_ATM.M_VOL_GROUP =CR_VOL.M_VOL_GROUP AND CR_ATM.M_VOLMAPPIN = CR_VOL.M_VOLMAPPIN AND CR_ATM.M_OPT_MATUR =CR_VOL.M_OPT_MATUR
+union select M_GROUP as M_GROUP, M_VOLMAPPIN as M_VOLMAPPING, M_MATURITY as  M_MATOPTION, M_MID as M_ATM_VOL  from BIM_IR_INF_VOL_REP
+union select M_GROUP as M_GROUP, M_VOLMAPPIN  as M_VOLMAPPING, M_OPT_MATUR as  M_MATOPTION, M_VOLATILIT as M_ATM_VOL from BIM_IR_CF_VOL_REP
+union select M_GROUP as M_GROUP, M_VOLMAPPIN  as M_VOLMAPPING, M_OPT_MATUR as  M_MATOPTION, M_VOLATILIT as M_ATM_VOL  from BIM_IR_SW_VOL_REP"
+"CAL_AUDIT.REP       |select
+CHEADER.M_REF as M_CAL_REF,
+CHEADER.M_CMP_DATE as M_DATE,
+CHEADER.M_CMP_TIME as M_TIME,
+CHEADER.M_CMP_TIME1 as M_TIME_S,
+CHEADER.M_USR_NAME as M_USER,
+CHEADER.M_USR_GROUP as M_GROUP,
+CHEADER.M_USR_DESK as M_DESK,
+CHEADER.M_TYPE as M_TYPE,
+CHEADER.M_ACTION as M_ACTION,
+CBODY.M_ID as M_SUBACT_REF,
+CBODY.M_FLD_LABEL as M_SUB_ACTION,
+CBODY.M_OLD_VALUE as M_OLD_VALUE,
+CBODY.M_NEW_VALUE as M_NEW_VALUE,
+CDEFINITION.M_DESC as M_C_DESC,
+CDEFINITION.M_SWIFTCDE as M_C_SWTCDE,
+CDEFINITION.M_ISUNION as M_C_ISUNION,
+CDEFINITION.M_SUNDAY as M_C_SU,
+CDEFINITION.M_MONDAY as M_C_MO,
+CDEFINITION.M_TUESDAY as M_C_TU,
+CDEFINITION.M_WDNESDAY as M_C_WE,
+CDEFINITION.M_THURSDAY as M_C_TH,
+CDEFINITION.M_FRIDAY as M_C_FR,
+CDEFINITION.M_SATURDAY as M_C_SA,
+CDEFINITION.M_DSP_LABEL as M_C_DSPLBL
+from
+AUD_CALH_DBF CHEADER 
+left join AUD_CALB_DBF CBODY on CHEADER.M_ID=CBODY.M_ID 
+left join CAL_DEF_DBF CDEFINITION on CHEADER.M_REF = CDEFINITION.M_LABEL
+where CHEADER.M_CMP_DATE >= @Start_date:D and CHEADER.M_CMP_DATE <=  @End_date:D"
+"CAL_FXO_REFRESH.REP |--FXO
+--Spot to Delivery Calendar, Direct modification,  Expiry--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL,
+'Expiry - Direct modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3 ON T2.M_LABEL=T3.M_LABEL 
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR0=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to Value date Calendar, Direct modification, Special holiday, Expiry--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO, 
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Expiry - Direct modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1 
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE  
+JOIN FX_CNT_DBF T3 ON T2.M_LABEL=T3.M_LABEL 
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR1=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' AND 
+T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') 
+AND SUBSTR(RTRIM(TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY')), 0, 5) = SUBSTR(RTRIM(T5.M_NEW_VALUE), 0, 5)
+AND T4.M_SYS_DATE = @currentdate:D 
+UNION
+--Spot to Delivery Calendar, Modification via a UNION,  Expiry--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY,
+T8.M_LABEL AS M_TRA_TYPO,  
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL, 
+'Expiry - Modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL
+JOIN CAL_UNI_DBF T6  ON  T6.M_CTN=T3.M_CALENDAR0
+JOIN AUD_CALH_DBF T4 ON  T6.M_REF=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON  T4.M_ID=T5.M_ID
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO) 
+WHERE  
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION'  
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to Value date Calendar, Modification via a UNION,  Expiry--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO, 
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Expiry - Modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE, 
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR1
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF 
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Spot to Delivery Calendar, Direct Fixing modification,  Fixing--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL, 
+'Fixing - Direct modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR0=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN FXNG_DBF T7     ON T7.M_TRN_NUMBER=T1.M_NB 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON  (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D 
+UNION
+--Date to value date Calendar, Direct Fixing modification via a UNION,  Fixing--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Fixing - Direct modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR1=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN FXNG_DBF T7     ON T7.M_TRN_NUMBER=T1.M_NB 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Spot to Delivery Calendar, Fixing modification via a UNION,  Fixing--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL, 
+'Fixing - Modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR0
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID
+JOIN FXNG_DBF T7     ON T7.M_TRN_NUMBER=T1.M_NB 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE  
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to value date Calendar, Fixing modification via a UNION,  Fixing--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO, 
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Fixing - Modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR1
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF 
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN FXNG_DBF T7     ON T7.M_TRN_NUMBER=T1.M_NB
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON  (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D 
+UNION
+--Spot to Delivery Calendar, Direct modification,  Delivery--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY,
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL, 
+'Delivery date - Direct modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR0=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE  
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to Value date Calendar, Direct modification,  Delivery--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY,
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Delivery date - Direct modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR1=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Spot to Delivery Calendar, Modification via a UNION,  Delivery--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY,
+T8.M_LABEL AS M_TRA_TYPO, 
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL, 
+'Delivery date - Modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR0
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE  
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION'  
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to Value date Calendar, Modification via a UNION,  Delivery--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY,
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Delivery date - Modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR1
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF 
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE  
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_BRW_SDTE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D 
+UNION
+--Spot to Delivery Calendar, Direct modification,  Premium date--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY,
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL, 
+'Premium date - Direct modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR0=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to Value date Calendar, Direct modification,  Premium date--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY,
+T8.M_LABEL AS M_TRA_TYPO, 
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Premium date - Direct modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR1=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION'  
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Spot to Delivery Calendar, Modification via a UNION,  Premium date--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL,
+'Premium date - Modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR0 
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF 
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO) 
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION'  
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to Value date Calendar, Modification via a UNION,  Premium date--
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO, 
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Premium date - Modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR1 
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF 
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)  
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'OPT'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_OPT_FLWFST, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+"
+"CAL_FX_REFRESH.REP  |--FX cash
+--Spot to Delivery Calendar, Direct modification, --
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS, 
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO,
+T9.M_DSP_LABEL AS M_COUNTERPAR, 
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL, 
+'Direct modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR0=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'FXD'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to Value date Calendar, Direct modification, --
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS, 
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Direct modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR1=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'FXD'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Spot to Delivery Calendar, Modification via a UNION, --
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL, 
+'Modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR0 
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF 
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'FXD'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to Value date Calendar, Modification via a UNION, --
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO, 
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE, 
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR1
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF 
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO) 
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'FXD'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T1.M_TRN_EXP, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Spot to Delivery Calendar, Direct Fixing modification, --
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO, 
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL, 
+'Direct fixing modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR0=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN FXNG_DBF T7     ON T7.M_TRN_NUMBER=T1.M_NB
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO) 
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'FXD'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to value date Calendar, Direct Fixing modification via a UNION, --
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Direct fixing modification' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE, 
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL
+JOIN AUD_CALH_DBF T4 ON T3.M_CALENDAR1=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID 
+JOIN FXNG_DBF T7     ON T7.M_TRN_NUMBER=T1.M_NB 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'FXD'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Spot to Delivery Calendar, Fixing modification via a UNION, --
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO,
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Spot to delivery Cal' AS M_IMPACT_CAL, 
+'Fixing modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE  
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR0 
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID
+JOIN FXNG_DBF T7     ON T7.M_TRN_NUMBER=T1.M_NB
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO) 
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'FXD'  
+AND T4.M_ACTION='MODIFICATION'  
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+UNION
+--Date to value date Calendar, Fixing modification via a UNION, --
+SELECT DISTINCT T1.M_NB AS M_TRADE_NUMB, 
+T1.M_RSKSECTION AS M_INSTRUMENT, 
+T1.M_BRW_NOM1 AS M_NOMINAL, 
+T1.M_BRW_NOMU1 AS M_CURR1,
+T1.M_BRW_NOM2 AS M_NOMINAL_2, 
+T1.M_BRW_NOMU2 AS M_CURR2, 
+T1.M_COMMENT_BS AS M_BS,
+CASE 
+	WHEN T1.M_BINTERNAL='Y' THEN T1.M_BPFOLIO 
+	ELSE T1.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T9.M_DSP_LABEL AS M_COUNTERPAR,
+T1.M_TRN_STATUS AS M_STATUS, 
+TO_CHAR(T1.M_TRN_EXP,'DD/MM/YY') AS M_MATURITY, 
+T8.M_LABEL AS M_TRA_TYPO, 
+T3.M_CALENDAR0 AS M_SPO_DE_CAL,
+T3.M_CALENDAR1 AS M_DAT_VA_CAL, 
+T4.M_REF AS M_MODIFI_CAL, 
+'Date to value date Cal' AS M_IMPACT_CAL, 
+'Fixing modification via a Union' AS M_IMPAC_TYPE,
+CASE 
+	WHEN T5.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T5.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T5.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T5.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+T5.M_FLD_LABEL AS M_MODIF_TYPE 
+FROM 
+TRN_HDR_DBF T1
+JOIN TRN_PLIN_DBF T2 ON T1.M_INSTRUMENT=T2.M_REFERENCE 
+JOIN FX_CNT_DBF T3   ON T2.M_LABEL=T3.M_LABEL 
+JOIN CAL_UNI_DBF T6  ON T6.M_CTN=T3.M_CALENDAR1 
+JOIN AUD_CALH_DBF T4 ON T6.M_REF=T4.M_REF 
+JOIN AUD_CALB_DBF T5 ON T4.M_ID=T5.M_ID
+JOIN FXNG_DBF T7     ON T7.M_TRN_NUMBER=T1.M_NB 
+JOIN TYPOLOGY_DBF T8 ON T1.M_TYPOLOGY = T8.M_REFERENCE
+JOIN TRN_CPDF_DBF T9 ON (T9.M_LABEL = T1.M_SPFOLIO OR T9.M_LABEL = T1.M_BPFOLIO)
+WHERE 
+T1.M_TRN_STATUS <> 'DEAD' 
+AND T1.M_TRN_FMLY = 'CURR' 
+AND T1.M_TRN_GRP = 'FXD'  
+AND T4.M_ACTION='MODIFICATION' 
+AND (((T5.M_FLD_LABEL ='INSERT_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='INSERT_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_NEW_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_SPECIAL_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD YYYY') = RTRIM(T5.M_OLD_VALUE)) OR ((T5.M_FLD_LABEL ='DELETE_YEARLY_HOLIDAY') AND TO_CHAR(T7.M_FIX_DATE, 'mon DD') = RTRIM(T5.M_OLD_VALUE)))
+AND T4.M_SYS_DATE = @currentdate:D
+
+"
+"CAL_IRD_REFRESH.REP |--IRD
+SELECT DISTINCT T2.M_NB AS M_TRADE_NUMB, 
+RTRIM(T1.M_DSP_LABEL) AS M_INSTRUMENT, 
+T2.M_BRW_NOM1 AS M_NOMINAL, 
+T2.M_BRW_NOMU1 AS M_CURR, 
+CASE 
+	WHEN T2.M_BINTERNAL ='Y' THEN T2.M_BPFOLIO 
+	ELSE T2.M_SPFOLIO 
+END AS M_PORTFOLIO, 
+T8.M_DSP_LABEL AS M_COUNTERPAR,
+RTRIM(TO_CHAR(T2.M_TRN_EXP,'DD/MM/YY')) AS M_MATURITY, 
+RTRIM(TO_CHAR(T2.M_TRN_DATE,'DD/MM/YY')) AS M_TRADE_DATE, 
+T7.M_LABEL AS M_TRA_TYPO,
+T5.M_REF AS M_MODIFI_CAL,
+CASE 
+	WHEN T6.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T6.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T6.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T6.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+'Direct modification' AS M_MOD_TYPE,
+T4.M_FIX_CLN0 AS M_FIX_CAL, 
+T4.M_FIX_CLN1 AS M_FIX_CAL2, 
+T4.M_PAY_CLN0 AS M_PAY_CAL, 
+T4.M_PAY_CLN1 AS M_PAY_CAL2, 
+T4.M_CAP_CLN0 AS M_CAP_CAL, 
+T4.M_CAP_CLN1 AS M_CAP_CAL2
+FROM 
+TRN_HDR_DBF T2
+JOIN TRN_PLIN_DBF T1 ON T2.M_INSTRUMENT=T1.M_ID 
+JOIN RT_LOAN_DBF T3 ON T2.M_NB=T3.M_NB
+JOIN RT_LNGN_DBF T4 ON T3.M_GEN_NUM = T4.M_GEN_NUM
+JOIN AUD_CALH_DBF T5 ON (T4.M_FIX_CLN0=T5.M_REF OR T4.M_FIX_CLN1=T5.M_REF OR T4.M_PAY_CLN0=T5.M_REF OR T4.M_PAY_CLN1=T5.M_REF OR T4.M_CAP_CLN0=T5.M_REF OR T4.M_CAP_CLN1=T5.M_REF) 
+JOIN AUD_CALB_DBF T6 ON T5.M_ID=T6.M_ID
+JOIN TYPOLOGY_DBF T7 ON T2.M_TYPOLOGY = T7.M_REFERENCE
+JOIN TRN_CPDF_DBF T8 ON (T8.M_LABEL = T2.M_SPFOLIO OR T8.M_LABEL = T2.M_BPFOLIO)
+WHERE  
+T5.M_SYS_DATE = @currentdate:D 
+AND T5.M_ACTION = 'MODIFICATION' 
+AND T2.M_TRN_STATUS <> 'DEAD' AND T2.M_TRN_FMLY = 'IRD' 
+AND (T6.M_FLD_LABEL = 'INSERT_SPECIAL_HOLIDAY' OR T6.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' OR T6.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' OR T6.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY')
+
+UNION 
+
+SELECT DISTINCT T2.M_NB AS M_TRADE_NUMB, 
+RTRIM(T1.M_DSP_LABEL) AS M_INSTRUMENT, 
+T2.M_BRW_NOM1 AS M_NOMINAL, 
+T2.M_BRW_NOMU1 AS M_CURR, 
+CASE 
+	WHEN T2.M_BINTERNAL ='Y' THEN T2.M_BPFOLIO 
+	ELSE T2.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T8.M_DSP_LABEL AS M_COUNTERPAR,
+RTRIM(TO_CHAR(T2.M_TRN_EXP,'DD/MM/YY')) AS M_MATURITY, 
+RTRIM(TO_CHAR(T2.M_TRN_DATE,'DD/MM/YY')) AS M_TRADE_DATE, 
+T7.M_LABEL AS M_TRA_TYPO,
+T5.M_REF AS M_MODIFI_CAL,
+CASE 
+	WHEN T6.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T6.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T6.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T6.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+'Modification via a Union' AS M_MOD_TYPE,
+T4.M_FIX_CLN0 AS M_FIX_CAL, 
+T4.M_FIX_CLN1 AS M_FIX_CAL2, 
+T4.M_PAY_CLN0 AS M_PAY_CAL, 
+T4.M_PAY_CLN1 AS M_PAY_CAL2, 
+T4.M_CAP_CLN0 AS M_CAP_CAL, 
+T4.M_CAP_CLN1 AS M_CAP_CAL2
+FROM 
+TRN_HDR_DBF T2
+JOIN TRN_PLIN_DBF T1 ON T2.M_INSTRUMENT=T1.M_ID 
+JOIN RT_LOAN_DBF T3 ON T2.M_NB=T3.M_NB
+JOIN RT_LNGN_DBF T4 ON T3.M_GEN_NUM = T4.M_GEN_NUM
+JOIN CAL_UNI_DBF T9 ON (T4.M_FIX_CLN0=T9.M_CTN OR T4.M_FIX_CLN1=T9.M_CTN OR T4.M_PAY_CLN0=T9.M_CTN OR T4.M_PAY_CLN1=T9.M_CTN OR T4.M_CAP_CLN0=T9.M_CTN OR T4.M_CAP_CLN1=T9.M_CTN) 
+JOIN AUD_CALH_DBF T5 ON T5.M_REF=T9.M_REF
+JOIN AUD_CALB_DBF T6 ON T5.M_ID=T6.M_ID 
+JOIN TYPOLOGY_DBF T7 ON T2.M_TYPOLOGY = T7.M_REFERENCE
+JOIN TRN_CPDF_DBF T8 ON (T8.M_LABEL = T2.M_SPFOLIO OR T8.M_LABEL = T2.M_BPFOLIO)
+WHERE  
+T5.M_SYS_DATE = @currentdate:D
+AND T5.M_ACTION = 'MODIFICATION' 
+AND T2.M_TRN_STATUS <> 'DEAD' AND T2.M_TRN_FMLY = 'IRD'
+AND (T6.M_FLD_LABEL = 'INSERT_SPECIAL_HOLIDAY' OR T6.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' OR T6.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' OR T6.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY')
+
+----floatingloan-------
+UNION 
+
+SELECT DISTINCT T2.M_NB AS M_TRADE_NUMB, 
+RTRIM(T1.M_DSP_LABEL) AS M_INSTRUMENT, 
+T2.M_BRW_NOM1 AS M_NOMINAL, 
+T2.M_BRW_NOMU1 AS M_CURR, 
+CASE 
+	WHEN T2.M_BINTERNAL ='Y' THEN T2.M_BPFOLIO 
+	ELSE T2.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T8.M_DSP_LABEL AS M_COUNTERPAR,
+RTRIM(TO_CHAR(T2.M_TRN_EXP,'DD/MM/YY')) AS M_MATURITY, 
+RTRIM(TO_CHAR(T2.M_TRN_DATE,'DD/MM/YY')) AS M_TRADE_DATE, 
+T7.M_LABEL AS M_TRA_TYPO,
+T5.M_REF AS M_MODIFI_CAL,
+CASE 
+	WHEN T6.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T6.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T6.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T6.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+'Direct modification' AS M_MOD_TYPE,
+T5.M_REF AS M_FIX_CAL, 
+'' AS M_FIX_CAL2, 
+'' AS M_PAY_CAL, 
+'' AS M_PAY_CAL2, 
+'' AS M_CAP_CAL, 
+'' AS M_CAP_CAL2
+FROM 
+TRN_HDR_DBF T2
+JOIN TRN_PLIN_DBF T1 ON T2.M_INSTRUMENT=T1.M_ID 
+JOIN RT_LOAN_DBF T3 ON (T2.M_NB=T3.M_NB AND T3.M_GEN_NUM=-2)
+JOIN RT_INDEX_DBF T4 ON T3.M_GEN_IND = T4.M_INDEX
+JOIN FX_CURR_DBF T10 ON T4.M_CURRENCY = T10.M_LABEL
+JOIN AUD_CALH_DBF T5 ON T5.M_REF=T10.M_HOLCLN0
+JOIN AUD_CALB_DBF T6 ON T5.M_ID=T6.M_ID 
+JOIN TYPOLOGY_DBF T7 ON T2.M_TYPOLOGY = T7.M_REFERENCE
+JOIN TRN_CPDF_DBF T8 ON (T8.M_LABEL = T2.M_SPFOLIO OR T8.M_LABEL = T2.M_BPFOLIO)
+WHERE  
+T5.M_SYS_DATE = @currentdate:D
+AND T5.M_ACTION = 'MODIFICATION' 
+AND T2.M_TRN_STATUS <> 'DEAD' AND T2.M_TRN_FMLY = 'IRD'
+AND (T6.M_FLD_LABEL = 'INSERT_SPECIAL_HOLIDAY' OR T6.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' OR T6.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' OR T6.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY')
+
+----fixed loan-------
+UNION 
+
+SELECT DISTINCT T2.M_NB AS M_TRADE_NUMB, 
+RTRIM(T1.M_DSP_LABEL) AS M_INSTRUMENT, 
+T2.M_BRW_NOM1 AS M_NOMINAL, 
+T2.M_BRW_NOMU1 AS M_CURR, 
+CASE 
+	WHEN T2.M_BINTERNAL ='Y' THEN T2.M_BPFOLIO 
+	ELSE T2.M_SPFOLIO END 
+AS M_PORTFOLIO, 
+T8.M_DSP_LABEL AS M_COUNTERPAR,
+RTRIM(TO_CHAR(T2.M_TRN_EXP,'DD/MM/YY')) AS M_MATURITY, 
+RTRIM(TO_CHAR(T2.M_TRN_DATE,'DD/MM/YY')) AS M_TRADE_DATE, 
+T7.M_LABEL AS M_TRA_TYPO,
+T5.M_REF AS M_MODIFI_CAL,
+CASE 
+	WHEN T6.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_NEW_VALUE,'mon DD'),'DD/MM'))
+	WHEN T6.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_OLD_VALUE,'mon DD'),'DD/MM'))
+	WHEN T6.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' THEN RTRIM(TO_CHAR(TO_DATE(T6.M_OLD_VALUE,'mon DD YYYY'),'DD/MM'))
+	ELSE RTRIM(TO_CHAR(TO_DATE(T6.M_NEW_VALUE,'mon DD YYYY'),'DD/MM/YY'))
+END AS M_MODIF_DATE,
+'Direct modification' AS M_MOD_TYPE,
+'' AS M_FIX_CAL, 
+'' AS M_FIX_CAL2, 
+T5.M_REF AS M_PAY_CAL, 
+'' AS M_PAY_CAL2, 
+T5.M_REF AS M_CAP_CAL, 
+'' AS M_CAP_CAL2
+FROM 
+TRN_HDR_DBF T2
+JOIN TRN_PLIN_DBF T1 ON T2.M_INSTRUMENT=T1.M_ID 
+JOIN RT_LOAN_DBF T3 ON (T2.M_NB=T3.M_NB AND T3.M_GEN_NUM=-2)
+JOIN FX_CURR_DBF T4 ON T3.M_GEN_CUR = T4.M_LABEL
+JOIN AUD_CALH_DBF T5 ON T5.M_REF=T4.M_HOLCLN0
+JOIN AUD_CALB_DBF T6 ON T5.M_ID=T6.M_ID 
+JOIN TYPOLOGY_DBF T7 ON T2.M_TYPOLOGY = T7.M_REFERENCE
+JOIN TRN_CPDF_DBF T8 ON (T8.M_LABEL = T2.M_SPFOLIO OR T8.M_LABEL = T2.M_BPFOLIO)
+WHERE  
+T5.M_SYS_DATE = @currentdate:D
+AND T5.M_ACTION = 'MODIFICATION' 
+AND T2.M_TRN_STATUS <> 'DEAD' AND T2.M_TRN_FMLY = 'IRD'
+AND (T6.M_FLD_LABEL = 'INSERT_SPECIAL_HOLIDAY' OR T6.M_FLD_LABEL = 'INSERT_YEARLY_HOLIDAY' OR T6.M_FLD_LABEL = 'DELETE_SPECIAL_HOLIDAY' OR T6.M_FLD_LABEL = 'DELETE_YEARLY_HOLIDAY')
+"
+"COL_ASSET_COL.REP   |select M_RE_HYP as M_RE_HYPO, 
+M_PROC_SCHE as M_PROC_SCHE,
+M_TRANSIT_INCL as M_TRANS_INC, 
+M_MDS as M_MDS, 
+M_QUOT_MOD as M_QUOT_MOD, 
+M_ACC_CONV as M_ACCR_CONV, 
+M_SUBS_RGT as M_SUBS_RGT, 
+M_LEG_REG as M_LEGL_OWN, 
+M_DEF_ALLOC_TPL as M_DEF_ALLOC, 
+M_CASH_SETT_DEL as M_CSH_DEL, 
+M_MARG_SPH_MC  as M_MARG_SPGH,
+M_MARG_SPH_INT as M_MARG_S_INT,
+rtrim(M_LABEL) as M_LABEL
+from ASSET_COL_TPL_DBF"
+"COL_CURR.REP        |select 
+CURR.M_LABEL as M_SEC_CUR,
+FXCAT.M_LABEL as M_CUR_CAT--,
+--TRIM(CURR.M_FULL_NAME) AS M_FULL_NAME
+from
+FX_CURR_DBF CURR
+join FXCAT_CUR_DBF FXCAT on CURR.M_CATEGORY = FXCAT.M_REFERENCE
+"
+"COL_ORCH_AUDIT.REP  |select 
+ T2.RUN_ID_FK as M_RUN_ID_FK
+,T2.EVENT_ID as M_EVENT_ID
+,T2.EVENT as M_EVENT
+,T2.RUN_BY as M_RUN_BY
+,T2.STARTING_TIME as M_START_TIME
+,T1.PROCESSING_DATE as M_PROC_DATE
+,T1.RUN_LABEL as M_RUN_LABEL
+,T1.USERNAME as M_USERNAME
+,T1.GROUP_NAME as M_GROUP_NAME
+,T1.WHAT_IF_CONT_ID as M_CONT_ID
+,T1.WHAT_IF_SCEN_NB_ISS as M_SCEN_NB
+,T1.WHAT_IF_SCEN_NB_LE as M_SCEN_NBLE
+,T1.WHAT_IF_SCEN_NB_CTP as M_SCEN_NBCTP
+,T1.MDS as M_MDS
+,T3.RUN_STATUS as M_RUN_STATUS
+,T4.VALUATION_DATE as M_VALUAT_DT
+from COLLATERAL_RUN T1 
+left outer join COLLATERAL_RUN_EVENT T2 
+on T1.COLLATERAL_RUN_ID=T2.RUN_ID_FK
+left outer join COLLATERAL_RUN_STATUS T3
+on T1.COLLATERAL_RUN_ID=T3.RUN_ID_FK
+left outer join COLLATERAL_RUN_VAL_INFO T4
+on T1.COLLATERAL_RUN_ID=T4.RUN_ID_FK"
+"COL_PARTIES.REP     |select 
+
+CTP.M_DSP_LABEL as M_CTP_LABEL, 
+CTP.M_LABEL as M_CTP_ID, 
+CTP.M_NAME as M_CTP_DESC, 
+SECTOR.M_LABEL as M_CTP_SECTOR, 
+CTP.M_PARENT as M_CTP_PARENT, 
+CTP.M_CODE as M_CTP_CODE, 
+CTP.M_ISS_CAT as M_ISS_CAT,
+case CTP.M_STATUS when 0 then 'LIVE' when 1 then 'SUSPENDED' when 2 then 'DEAD' end as M_CTP_STATUS, 
+case CTP.M_BANK when 'Y' then 'X' when 'N' then '' end as M_BANK, 
+case CTP.M_BROKER when 'Y' then 'X' when 'N' then '' end as M_BROKER, 
+case CTP.M_CLEARER when 'Y' then 'X' when 'N' then '' end as M_CLEARER, 
+case CTP.M_CLIENT when 'Y' then 'X' when 'N' then '' end as M_CLIENT, 
+case CTP.M_ISSUER when 'Y' then 'X' when 'N' then '' end as M_ISSUER, 
+case CTP.M_STATE when 'Y' then 'X' when 'N' then '' end as M_STATE, 
+case CTP.M_CORPORATE when 'Y' then 'X' when 'N' then '' end as M_CORPORATE, 
+case CTP.M_REFENTITY when 'Y' then 'X' when 'N' then '' end as M_REFENTITY, 
+case CTP.M_GARANTOR when 'Y' then 'X' when 'N' then '' end as M_GARANTOR, 
+case CTP.M_ENTITY when 'Y' then 'X' when 'N' then '' end as M_ENTITY, 
+case CTP.M_CUSTOMER when 'Y' then 'X' when 'N' then '' end as M_CUSTOMER, 
+case CTP.M_FICTIVE when 'Y' then 'X' when 'N' then '' end as M_FICTIVE, 
+case CTP.M_INT_PARTY when 'Y' then 'X' when 'N' then '' end as M_INT_PARTY, 
+case CTP.M_GROUP when 'Y' then 'X' when 'N' then '' end as M_GRP_LABEL, 
+case CTP.M_SUBSIDIARY when 'Y' then 'X' when 'N' then '' end as M_SUBSIDIARY,
+case CTP.M_BRANCH when 'Y' then 'X' when 'N' then '' end as M_BRANCH, 
+case CTP.M_OTHER when 'Y' then 'X' when 'N' then '' end as M_OTHER 
+
+from TRN_CPDF_DBF CTP left outer join CSF_FOLDER_DBF SECTOR on CTP.M_SECTOR=SECTOR.M_REFERENCE"
+"COL_RATING.REP      |select 
+X.M__DATE_ as M_DATE, 
+CPT.M_DSP_LABEL as M_ISSUER,
+'' as M_ISSUE, 
+RTNG.M_RTNG as M_RATING, 
+RTNG.M_RTNG_A as M_RATING_A
+from MPX_RATG_DBF X
+inner join MPY_RATG_DBF Y on X.M__INDEX_   =Y.M__INDEX_
+inner join RT_RTNG_DBF  RTNG on Y.M_RATING=RTNG.M_REFERENCE
+inner join TRN_CPDF_DBF CPT on Y.M_ISSUER=CPT.M_LABEL
+where X.M__DATE_=(select M_DATE from TRN_PC_DBF)
+UNION
+select 
+X.M__DATE_ as M_DATE,
+'' as M_ISSUER ,
+SE.M_SE_D_LABEL as M_ISSUE,
+RTNG.M_RTNG as M_RATING, 
+RTNG.M_RTNG_A as M_RATING_A
+from MPX_RATG_DBF X
+inner join MPY_RATG_DBF Y on X.M__INDEX_   =Y.M__INDEX_
+inner join RT_RTNG_DBF  RTNG on Y.M_RATING=RTNG.M_REFERENCE
+inner join SE_HEAD_DBF  SE on Y.M_ISSUE =SE.M_SE_LABEL
+where X.M__DATE_=(select M_DATE from TRN_PC_DBF)"
+"COL_SECURITIES.REP  |select 
+HEAD.M_SE_GROUP as M_SE_GROUP,
+HEAD.M_SE_CATE as M_SE_CATE, 
+HEAD.M_SE_LABEL as M_SE_LABEL, 
+ROOT.M_SE_MARKET as M_SE_MARKET, 
+HEAD.M_SE_D_LABEL as M_SE_D_LABEL, 
+HEAD.M_SE_F_NAME as M_SE_F_NAME
+from 
+SE_HEAD_DBF HEAD, 
+SE_ROOT_DBF ROOT
+where 
+HEAD.M_SE_LABEL = ROOT.M_SE_LABEL
+"
+"CONS_FAIL.REP       |select distinct
+  T.M_TRADE_NUM as M_TRADE_NUM
+from
+  (
+    select 
+      T1.M_TRADE_NUM as M_TRADE_NUM
+    from 
+      POS_REP_DET_REP T1
+    left join POS_REP_CONS_REP T2 on (T1.M_STRADE_NUM=T2.M_STRADE_NUM and T1.M_PORTFOLIO=T2.M_PORTFOLIO and T1.M_CURRENCY=T2.M_CURRENCY)
+      where T2.M_TRADE_NUM is NULL
+      and
+        (
+          ABS(T1.M_CAPITAL)     >0.01
+          or ABS(T1.M_CASH)     >0.01
+          or ABS(T1.M_FINANCING)>0.01
+          or ABS(T1.M_MV)       >0.01
+          or ABS(T1.M_PV_EFFECT)>0.01
+          or ABS(T1.M_P_L__ABS_)>0.01
+          or ABS(T1.M_REVENUES) >0.01
+          or ABS(T1.M_FEE)      >0.01
+        )
+        AND
+        (
+          ABS(T1.M_CAPITAL)     >0.01
+          or T1.M_CASH          =0
+          or ABS(T1.M_FINANCING)>0.01
+          or ABS(T1.M_MV)       >0.01
+          or ABS(T1.M_PV_EFFECT)>0.01
+          or T1.M_P_L__ABS_     =0
+          or ABS(T1.M_REVENUES) >0.01
+          or T1.M_FEE           =0
+        )
+    union
+
+    select 
+          T1.M_TRADE_NUM as M_TRADE_NUM
+        from 
+           POS_REP_CONS_REP T1
+        left join POS_REP_DET_REP T2 on (T1.M_STRADE_NUM=T2.M_STRADE_NUM and T1.M_PORTFOLIO=T2.M_PORTFOLIO and T1.M_CURRENCY=T2.M_CURRENCY)
+          where T2.M_TRADE_NUM is NULL
+        and
+        (
+          ABS(T1.M_CAPITAL)     >0.01
+          or ABS(T1.M_CASH)     >0.01
+          or ABS(T1.M_FINANCING)>0.01
+          or ABS(T1.M_MV)       >0.01
+          or ABS(T1.M_PV_EFFECT)>0.01
+          or ABS(T1.M_P_L__ABS_)>0.01
+          or ABS(T1.M_REVENUES) >0.01
+          or ABS(T1.M_FEE)      >0.01
+        )
+        AND T1.M_TRADE_NUM<>0
+        AND
+        (
+          ABS(T1.M_CAPITAL)     >0.01
+          or T1.M_CASH          =0
+          or ABS(T1.M_FINANCING)>0.01
+          or ABS(T1.M_MV)       >0.01
+          or ABS(T1.M_PV_EFFECT)>0.01
+          or T1.M_P_L__ABS_     =0
+          or ABS(T1.M_REVENUES) >0.01
+          or T1.M_FEE           =0
+        )
+     
+    union
+    select distinct
+      T1.M_TRADE_NUM
+    from
+      POS_REP_CONS_REP T1
+    , POS_REP_DET_REP  T2
+    where
+      (
+        (
+          T1.M_TRADE_NUM     IS NULL
+          and T2.M_TRADE_NUM IS NULL
+        )
+        or
+        (
+          (
+            T1.M_TRADE_NUM
+          )
+          =(T2.M_TRADE_NUM)
+        )
+      )
+      and
+      (
+        (
+          T1.M_PORTFOLIO     IS NULL
+          and T2.M_PORTFOLIO IS NULL
+        )
+        or
+        (
+          (
+            T1.M_PORTFOLIO
+          )
+          =(T2.M_PORTFOLIO)
+        )
+      )
+      and
+      (
+        (
+          T1.M_CURRENCY     IS NULL
+          and T2.M_CURRENCY IS NULL
+        )
+        or
+        (
+          (
+            T1.M_CURRENCY
+          )
+          =(T2.M_CURRENCY)
+        )
+      )
+      AND
+      (
+        (
+          ABS(T1.M_CASH - T2.M_CASH) >=1
+        )
+        or
+        (
+          ABS(T1.M_CAPITAL- T2.M_CAPITAL) >=1
+        )
+        or
+        (
+          ABS(T1.M_FINANCING- T2.M_FINANCING) >=1
+        )
+        or
+        (
+          ABS(T1.M_MV- T2.M_MV) >=1
+        )
+        or
+        (
+          ABS(T1.M_PV_EFFECT- T2.M_PV_EFFECT) >=1
+        )
+        or
+        (
+          ABS(T1.M_P_L__ABS_- T2.M_P_L__ABS_) >=1
+        )
+        or
+        (
+          ABS(T1.M_REVENUES- T2.M_REVENUES) >=1
+        )
+        or
+        (
+          ABS(T1.M_FEE- T2.M_FEE) >=1
+        )
+      )
+  )
+  T"
+"CRD_CURVES.REP      |select  T1.M_REFERENCE as M_CURVE_ID,  T2.M_LABEL as M_OWNER, T1.M_DLABEL as M_CRV_LABEL  
+from RT_CT_DBF T1 , MX_USER_DBF T2 where  T1.M_USERID = T2.M_REFERENCE and M_EVALUATION=1"
+"EOY_BALANCES.REP    |SELECT
+ENTD.M_LABEL AS M_ENTITY,
+BAL.M_EN_AMTC AS M_CR_BALANCE,
+BAL.M_EN_AMTD AS M_DT_BALANCE,
+BAL.M_EN_AMTN AS M_NETBALANCE,
+BAL.M_EN_ACCOUNT AS M_ACCOUNT2,
+ACA1.M_LABEL AS M_ACCOUNT, 
+BAL.M_INSTRUMENT AS M_INSTRUMENT,
+CURR.M_DSP_LABEL AS M_CURRENCY,
+BAL.M_EN_DATE AS M_BAL_DATE,
+PC.M_DATE AS M_SYS_DATE
+
+FROM TRN_ACJS_DBF BAL, TRN_PC_DBF PC, TRN_ACA1_DBF ACA1, TRN_PLIN_DBF CURR, TRN_ENTD_DBF ENTD
+WHERE 
+BAL.M_EN_DATE=TO_DATE('12312023', 'MMDDYYYY') AND 
+BAL.M_SYS_DATE=TO_DATE('12312023', 'MMDDYYYY') AND
+CURR.M_ID=BAL.M_INSTRUMENT 
+AND ACA1.M_REFERENCE = BAL.M_EN_ACCOUNT AND
+ENTD.M_REF=BAL.M_ENTITY AND
+BAL.M_EN_ACCOUNT IN ('168','172','174','235','242','243','248','249','277','284','285','286','298','302','303','305','314','315','318','319','337','338','354','355','359','376','378','379','381','389','390','392','395','397','398','406','407','408','416','418','423','433','446','450','451','452','453','455','458','459','469','474','475','476','477','484','485','487','489','493','497','498','500','501','510','539','677','678','679','684','693','694','699','700','701','768','775','778','788','792','825','861','880','883','884','888','893','992','994','996','998','1000','1002','1004','1006','1008','1010','1012','1014','1016','1018','1020','1022','1024','1028','1032','1034','1037','1040','1044','1047','1050','1051','1053','1056','1058','1060','1062','1064','1066','1068','1070','1072','1074','1076','1078','1080','1082','1084','1086','1088','1090','1092','1094','1096','1098','1100','1102','1104','1106','1108','1110','1112','1114','1116','1118','1120','1122','1124','1126','1128','1130','1132','1134','1136','1138','1140','1142','1144','1146','1148','1150','1152','1154','1156','1158','1160','1162','1164','1166','1169','1173','1175','1179','1181','1183','1185','1187','1189','1191','1193','1195','1197','1199','1201','1203','1206','1208','1210','1212','1214','1216','1220','1222','1225','1228','1230','1232','1234','1236','1238','1240','1242','1244','1246','1249','1252','1253','1255','1258','1259','1263','1264','1266','1269','1270','1272','1275','1276','1278','1279','1281','1283','1285','1287','1289','1293','1294','1296','1297','1299','1301','1303','1305','1309','1311','1312','1314','1315','1317','1319','1321','1325','1329','1330','1332','1334','1338','1342','1345','1358','1363','1364','1365','1374','1375','1380','1389','1390','1399','1400','1409','1414','1419','1420','1429','1430','1439','1444','1445','1453','1464','1471','1480','1482','1483','1489','1497','1505','1513','1516','1521','1523','1538','1543','1552','1557','1558','1567','1572','1577','1578','1587','1588','1599','1620','1629','1630','1635','1640','1649','1654','1655','1660','1666','1668','1670','1672','1673','1708','1717','1718','1727','1728','1737','1738','1744','1747','1749','1751','1783','1792','1793','1794','1803','1808','1813','1814','1823','1828','1833','1834','1839','1840','1845','1847','1849','1851','1853','1855','1864','1869','1874','1880','1882','1884','1886','1888','1890','1892','1894','1896','1898','1900','1902','1904','1906','1908','1910','1912','1914','1916','1918','1921','1930','1939','1944','1949','1954','1957','1965','1967','1974','1976','1981','1986','1989','1994','1995','2005','2008','2016','2021','2030','2032','2043','2048','2049','2054','2059','2068','2069','2078','2080','2095','2118','2127','2133','2135','2137','2150','2154','2157','2160','2167','2168','2177','2195','2197','2199','2202','2204','2206','2221','2222','2225','2234','2239','2250','2252','2254','2263','2265','2266','2286','2295','2297','2298','2314','2317','2325','2327','2329','2345','2347','2349','2351','2354','2364','2367','2370','2380','2390','2398','2401','2413','2415','2416','2417','2431','2434','2452','2454','2456','2460','2463','2466','2468','2486','2492','2503','2509','2513','2520','2522','2526','2531','2535','2536','2553','2555','2557','2559','2561','2562','2564','2576','2578','2580','2588','2598','2600','2602','2621','2623','2625','2627','2629','2630','2636','2638','2655','2657','2659','2660','2677','2679','2681','2683','2684','2688','2690','2704','2706','2708','2710','2712','2714','2716','2717','2722','2738','2740','2742','2744','2756','2758','2760','2762','2775','2777','2779','2781','2782','2795','2797','2799','2801','2802','2807','2816','2818','2819','2823','2829','2830','2839','2841','2843','2849','2855','2871','2874','2876','2879','2887','2889','2891','2904','2906','2908','2920','2922','2924','2925','2936','2944','2965','2982','2984','2985','2994','3002','3010','3021','3023','3029','3038','3048','3050','3198','3200','3202','3205','3218','3223','3224','3235','3242','3249','3263','3265','3273','3275','3277','3288','3290','3292','3301','3311','3318','3329','3331','3333','3353','3355','3358','3365','3367','3383','3385','3387','3389','3391','3404','3406','3408','3413','3428','3430','3440','3441','3448','3457','3465','3466','3473','3481','3492','3494','3503','3505','3506','3509','3511','3519','3521','3532','3544','3546','3558','3560','3565','3572','3577','3588','3590','3820','3907','3921','3931','3933','3949','3951','3959','3961','3972','3974','3975','3976','3986','3988','3990','3998','4007','4027','4029','4031','4055','4064','4066','4074','4078','4090','4092','4096','4108','4113','4142','4144','4153','4155','4162','4164','4171','4173','4179','4186','4192','4203','4216','4222','4232','4234','4242','4254','4256','4269','4271','4274','4285','4287','4289','4306','4308','4310','4315','4320','4331','4339','4349','4357','4359','4371','4373','4376','4378','4383','4392','4397','4402','4403','4410','4412','4423','4428','4430','4437','4451','4453','4455','4457','4458','4468','4473','4480','4486','4494','4496','4502','4514','4520','4528','4530','4538','4540','4551','4553','4571','4574','4576','4584','4586','4594','4599','4600','4602','4607','4616','4618','4630','4636','4644','4646','4660','4662','4664','4666','4675','4676','4679','4687','4689','4703','4705','4712','4714','4715','4717','4719','4721','4723','4727','4729','4731','4733','4735','4752','4754','4774','4776','4778','4780','4782','4795','4797','4799','4803','4804','4815','4817','4822','4827','4835','4837','4839','4845','4847','4853','4868','4874','4876','4879','4890','4892','4894','4901','4905','4908','4909','4930','4935','4936','4940','4948','4950','4956','4959','4968','4972','4974','4978','4981','4990','4992','5003','5005','5007','5017','5025','5027','5039','5041','5055','5057','5062')"
+"ERM_CNISS_UTIL.REP  |SELECT
+    M_GROUP AS M_GROUP,
+    M_PILLAR AS M_PILLAR,
+    M_NETLEVEL AS M_NETLEVEL,
+    M_ENTITY AS M_ENTITY,
+    M_ISOCODE AS M_ISOCODE,
+    M_EXPOSURE AS M_EXPOSURE,
+    M_EXPLIM AS M_EXPLIM,
+    M_EXPCCY AS M_EXPCCY,
+    M_EXPUPC AS M_EXPUPC,
+    M_EXPA AS M_EXPA,
+    M_EXPAPC AS M_EXPAPC,
+    M_NETGP AS M_NETGP,
+    M_COUNTRY AS M_COUNTRY
+FROM
+    CNISSUTIL_DBF"
+"ERM_CNLEN_UTIL.REP  |SELECT
+   M_ISOCODE   AS M_ISOCODE,
+   M_ENTITY    AS M_ENTITY,
+   M_GROUP     AS M_GROUP,
+   M_NOTIONAL  AS M_NOTIONAL,
+   M_PILLAR    AS M_PILLAR,
+   M_NOTLIM    AS M_NOTLIM,
+   M_NOTCCY    AS M_NOTCCY,
+   M_NOTUPC    AS M_NOTUPC,
+   M_NOTA      AS M_NOTA,
+   M_NOTAPC    AS M_NOTAPC,
+   M_COUNTRY   AS M_COUNTRY,
+   M_DATE   AS M_DATE
+FROM
+    CNLENUTIL_DBF"
+"ERM_CNPSR_UTIL.REP  |SELECT
+    M_ISOCODE AS M_ISOCODE,
+    M_ENTITY AS M_ENTITY,
+    M_COUNTRY AS M_COUNTRY,
+    M_GROUP AS M_GROUP,
+    M_PILLAR AS M_PILLAR,
+    M_NETLEVEL AS M_NETLEVEL,
+    M_NETGP AS M_NETGP,
+    M_MVGROSS AS M_MVGROSS,
+    M_MVNET AS M_MVNET,
+    M_NGR AS M_NGR,
+    M_AOGROSS AS M_AOGROSS,
+    M_AONET AS M_AONET,
+    M_NETEXP AS M_NETEXP,
+    M_COLLATERAL AS M_COLLATERAL,
+    M_MITEXP AS M_MITEXP,
+    M_NETEXPLIM AS M_NETEXPLIM,
+    M_NETEXPCCY AS M_NETEXPCCY,
+    M_NETEXPUPC AS M_NETEXPUPC,
+    M_NETEXPA AS M_NETEXPA,
+    M_NETEXPAPC AS M_NETEXPAPC,
+    M_MITEXPMLIM AS M_MITEXPMLIM,
+    M_MITEXPCCY AS M_MITEXPCCY,
+    M_MITEXPUPC AS M_MITEXPUPC,
+    M_MITEXPA AS M_MITEXPA,
+    M_MITEXPAPC AS M_MITEXPAPC
+FROM 
+    CNPSRUTIL_DBF"
+"ERM_CNTCR_UTIL.REP  |SELECT
+    M_ISOCODE AS M_ISOCODE,
+    M_ENTITY AS M_ENTITY,
+    M_COUNTRY AS M_COUNTRY,
+    M_PILLAR AS M_PILLAR,
+    M_TCRLIM AS M_TCRLIM,
+    M_TCRUPC AS M_TCRUPC,
+    M_TCRA AS M_TCRA,
+    M_TCRAPC AS M_TCRAPC,
+    M_TCRCCY AS M_TCRCCY,
+    M_GROUP AS M_GROUP,
+    M_PSR AS M_PSR,
+    M_ISSUER AS M_ISSUER,
+    M_LENDING AS M_LENDING,
+    M_TCR AS M_TCR
+FROM
+    CNTCRUTIL_DBF"
+"ERM_CPISS_TRN.REP   |SELECT
+M_CTRP       AS M_CTRP
+,M_ENTITY     AS M_ENTITY
+,M_GROUP      AS M_GROUP
+,M_PILLAR     AS M_PILLAR
+,M_NETGROUP   AS M_NETGROUP
+,M_TRNKEY     AS M_TRNKEY
+,M_TYPOLOGY   AS M_TYPOLOGY
+,M_CONTRACT   AS M_CONTRACT
+,M_PORTFOLIO  AS M_PORTFOLIO
+,M_INSTRUMENT AS M_INSTRUMENT
+,M_COUNTRY			 AS M_COUNTRY
+,M_SECTOR     AS M_SECTOR
+,M_ISSUEREXP  AS M_ISSUEREXP
+FROM CPISSTRN_DBF"
+"ERM_CPISS_UTIL.REP  |SELECT
+M_CTRP      AS M_CTRP 
+,M_ENTITY    AS M_ENTITY
+,M_PILLAR    AS M_PILLAR
+,M_GROUP     AS M_GROUP
+,M_NETLEVEL AS M_NETLEVEL
+,M_NETGP     AS M_NETGP
+,M_EXPOSURE  AS M_EXPOSURE
+,M_MAXLIM    AS M_MAXLIM
+,M_LIMCCY	   AS M_LIMCCY	
+,M_PCUTIL    AS M_PCUTIL
+,M_AVAIL     AS M_AVAIL
+,M_PCAVAIL   AS M_PCAVAIL
+FROM CPISSUTIL_DBF"
+"ERM_CPLEN_TRN.REP   |SELECT
+M_CTRP		  AS M_CTRP		   
+,M_ENTITY     AS M_ENTITY    
+,M_GROUP      AS M_GROUP     
+,M_PILLAR     AS M_PILLAR    
+,M_DATE       AS M_DATE  
+,M_NETGROUP   AS M_NETGROUP  
+,M_TYPOLOGY   AS M_TYPOLOGY  
+,M_CONTRACT   AS M_CONTRACT  
+,M_PORTFOLIO  AS M_PORTFOLIO 
+,M_INSTRUMENT AS M_INSTRUMENT
+,M_COUNTRY			 AS M_COUNTRY
+,M_SECTOR     AS M_SECTOR
+,M_TRNKEY     AS M_TRNKEY    
+,M_NOTIONAL   AS M_NOTIONAL
+FROM CPLENTRN_DBF"
+"ERM_CPLEN_UTIL.REP  |SELECT
+M_CTRP 	 AS M_CTRP 
+,M_ENTITY    AS M_ENTITY
+,M_PILLAR    AS M_PILLAR
+,M_GROUP     AS M_GROUP
+,M_DATE      AS M_DATE
+,M_NET_LEVEL AS M_NET_LEVEL
+,M_NOTIONAL  AS M_NOTIONAL
+,M_MAXLIM    AS M_MAXLIM
+,M_LIMCCY	 AS M_LIMCCY	
+,M_PCUTIL    AS M_PCUTIL
+,M_AVAIL     AS M_AVAIL
+,M_PCAVAIL   AS M_PCAVAIL
+FROM CPLENUTIL_DBF"
+"ERM_CPNOT_TRN.REP   |SELECT
+M_CTRP				  AS M_CTRP
+,M_ENTITY     AS M_ENTITY
+,M_GROUP      AS M_RISKGROUP
+,M_PILLAR     AS M_PILLAR
+,M_TYPOLOGY   AS M_TYPOLOGY
+,M_CONTRACT   AS M_CONTRACT
+,M_PORTFOLIO  AS M_PORTFOLIO
+,M_INSTRUMENT AS M_INSTRUMENT
+,M_TRNKEY     AS M_TRNKEY
+,M_NOTIONAL   AS M_NOTIONAL
+FROM CPNOTTRN_DBF"
+"ERM_CPNOT_UTIL.REP  |SELECT
+M_CTRP     AS M_CTRP
+,M_ENTITY   AS M_ENTITY
+,M_GROUP    AS M_GROUP
+,M_PILLAR   AS M_PILLAR
+,M_NOTIONAL AS M_NOTIONAL
+,M_LIMMAX   AS M_LIMMAX
+,M_LIMCURR  AS M_LIMCURR
+,M_UTILPC   AS M_UTILPC
+,M_AVAILMAX AS M_AVAILMAX
+,M_AVAILPC  AS M_AVAILPC
+FROM CPNOTUTIL_DBF"
+"ERM_CPPCE_TRN.REP   |SELECT
+M_CTRP        AS M_CTRP
+,M_ENTITY     AS M_ENTITY
+,M_GROUP      AS M_GROUP
+,M_PILLAR     AS M_PILLAR
+,M_NETGROUP   AS M_NETGROUP
+,M_TYPOLOGY   AS M_TYPOLOGY
+,M_CONTRACT   AS M_CONTRACT
+,M_PORTFOLIO  AS M_PORTFOLIO
+,M_INSTRUMENT AS M_INSTRUMENT
+,M_TRNKEY     AS M_TRNKEY
+,M_MVNET      AS M_MVNET
+,M_ADDON      AS M_ADDON
+,M_GROSSEXP   AS M_GROSSEXP
+,M_COLLATERAL AS M_COLLATERAL
+,M_MITEXP     AS M_MITEXP
+FROM CPPCETRN_DBF"
+"ERM_CPPCE_UTIL.REP  |SELECT
+M_CTRP 	   AS M_CTRP 
+,M_ENTITY      AS M_ENTITY
+,M_PILLAR      AS M_PILLAR
+,M_DATE        AS M_DATE
+,M_NETLEVEL    AS M_NETLEVEL
+,M_GROUP       AS M_GROUP
+,M_NETGP       AS M_NETGP
+,M_MVNET       AS M_MVNET
+,M_ADDON       AS M_ADDON
+,M_GROSSEXP    AS M_GROSSEXP
+,M_COLLATERAL  AS M_COLLATERAL
+,M_MITEXP      AS M_MITEXP
+,M_MVNETLIM    AS M_MVNETLIM
+,M_ADDONLIM    AS M_ADDONLIM
+,M_GEXPLIM AS M_GEXPLIM
+,M_COLLATLIM   AS M_COLLATLIM
+,M_MITEXPLIM   AS M_MITEXPLIM
+,M_MVNETCCY    AS M_MVNETCCY
+,M_ADDONCCY    AS M_ADDONCCY
+,M_GEXPCCY AS M_GEXPCCY
+,M_COLLATCCY   AS M_COLLATCCY
+,M_MITEXPCCY   AS M_MITEXPCCY	
+,M_MVNETUPC    AS M_MVNETUPC
+,M_ADDONUPC    AS M_ADDONUPC
+,M_GEXPUPC AS M_GEXPUPC
+,M_COLLATUPC   AS M_COLLATUPC
+,M_MITEXPUPC   AS M_MITEXPUPC
+,M_MVNETA      AS M_MVNETA
+,M_ADDONA      AS M_ADDONA
+,M_GEXPA   AS M_GEXPA
+,M_COLLATA     AS M_COLLATA
+,M_MITEXPA     AS M_MITEXPA
+,M_MVNETAPC    AS M_MVNETAPC
+,M_ADDONAPC    AS M_ADDONAPC
+,M_GEXPAPC AS M_GEXPAPC
+,M_COLLATAPC   AS M_COLLATAPC
+,M_MITEXPAPC   AS M_MITEXPAPC
+FROM CPPCEUTIL_DBF"
+"ERM_CPPSR_TRN.REP   |SELECT
+M_CTRP        AS M_CTRP
+,M_ENTITY     AS M_ENTITY
+,M_GROUP      AS M_GROUP
+,M_PILLAR     AS M_PILLAR
+,M_NETGROUP   AS M_NETGROUP
+,M_TYPOLOGY   AS M_TYPOLOGY
+,M_INSTRUMENT AS M_INSTRUMENT
+,M_PORTFOLIO  AS M_PORTFOLIO
+,M_CONTRACT   AS M_CONTRACT
+,M_COUNTRY			 AS M_COUNTRY
+,M_SECTOR     AS M_SECTOR
+,M_TRNKEY     AS M_TRNKEY
+,M_MVGROSS    AS M_MVGROSS
+,M_MVNET      AS M_MVNET
+,M_NGR        AS M_NGR
+,M_AOGROSS    AS M_AOGROSS
+,M_AONET      AS M_AONET
+,M_NETEXP     AS M_NETEXP
+,M_COLLATERAL AS M_COLLATERAL
+,M_MITEXP     AS M_MITEXP
+FROM CPPSRTRN_DBF"
+"ERM_CPPSR_UTIL.REP  |SELECT
+M_CTRP        AS M_CTRP      
+,M_ENTITY     AS M_ENTITY    
+,M_GROUP      AS M_GROUP     
+,M_PILLAR     AS M_PILLAR    
+,M_NETLEVEL   AS M_NETLEVEL  
+,M_NETGP      AS M_NETGP     
+,M_MVGROSS    AS M_MVGROSS   
+,M_MVNET      AS M_MVNET     
+,M_NGR        AS M_NGR       
+,M_AOGROSS    AS M_AOGROSS   
+,M_AONET	  AS M_AONET	    
+,M_NETEXP     AS M_NETEXP    
+,M_COLLATERAL AS M_COLLATERAL
+,M_MITEXP     AS M_MITEXP    
+,M_NETEXPMLIM AS M_NETEXPMLIM
+,M_NETEXPCCY  AS M_NETEXPCCY 
+,M_NETEXPUPC  AS M_NETEXPUPC 
+,M_NETEXPA    AS M_NETEXPA   
+,M_NETEXPAPC  AS M_NETEXPAPC 
+,M_MITEXPMLIM AS M_MITEXPMLIM
+,M_MITEXPCCY  AS M_MITEXPCCY 
+,M_MITEXPUPC  AS M_MITEXPUPC 
+,M_MITEXPA    AS M_MITEXPA   
+,M_MITEXPAPC  AS M_MITEXPAPC
+FROM CPPSRUTIL_DBF"
+"ERM_CPSR_TRN.REP    |SELECT
+M_CTRP			 						AS M_CTRP			
+,M_ENTITY        AS M_ENTITY       
+,M_GROUP         AS M_GROUP       
+,M_DATE 			     AS M_DATE     
+,M_NETGROUP      AS M_NETGROUP     
+,M_TYPOLOGY      AS M_TYPOLOGY     
+,M_CONTRACT      AS M_CONTRACT     
+,M_PORTFOLIO     AS M_PORTFOLIO    
+,M_INSTRUMENT    AS M_INSTRUMENT   
+,M_TRNKEY        AS M_TRNKEY       
+,M_FLOWS         AS M_FLOWS        
+,M_POSFLOWS 				AS M_POSFLOWS
+FROM CPSRTRN_DBF"
+"ERM_CPSR_UTIL.REP   |SELECT
+M_CTRP       AS M_CTRP 
+,M_ENTITY     AS M_ENTITY
+,M_GROUP      AS M_GROUP
+,M_DATE       AS M_DATE
+,M_NET_LEVEL  AS M_NET_LEVEL
+,M_NETGP      AS M_NETGP
+,M_FLOWS      AS M_FLOWS
+,M_POSFLOWS   AS M_POSFLOWS
+,M_FLOWSLIM   AS M_FLOWSLIM
+,M_LIMCCY     AS M_LIMCCY
+,M_FLOWSUPC   AS M_FLOWSUPC
+,M_FLOWSA     AS M_FLOWSA
+,M_FLOWSAPC   AS M_FLOWSAPC
+FROM CPSRUTIL_DBF"
+"ERM_CPTCR_UTIL.REP  |SELECT
+M_CTRP     AS M_CTRP 
+,M_ENTITY   AS M_ENTITY
+,M_GROUP    AS M_GROUP
+,M_PILLAR   AS M_PILLAR
+,M_PSRUTIL  AS M_PSRUTIL
+,M_ISSUTIL  AS M_ISSUTIL
+,M_LENUTIL  AS M_LENUTIL
+,M_TCRUTIL  AS M_TCRUTIL
+,M_MAXLIM   AS M_MAXLIM
+,M_LIMCCY   AS M_LIMCCY
+,M_PCUTIL   AS M_PCUTIL
+,M_AVAIL    AS M_AVAIL
+,M_PCAVAIL  AS M_PCAVAIL
+FROM CPTCRUTIL_DBF"
+"ERM_RWA_TRN.REP     |SELECT
+M_CTRP           AS M_CTRP
+,M_ENTITY         AS M_ENTITY
+,M_TYPOLOGY       AS M_TYPOLOGY
+,M_CONTRACT       AS M_CONTRACT
+,M_PORTFOLIO      AS M_PORTFOLIO
+,M_COLPOSTYPE     AS M_COLPOSTYPE
+,M_COLBALTYPE     AS M_COLBALTYPE
+,M_TRNKEY         AS M_TRNKEY
+,M_NETGROUP       AS M_NETGROUP
+,M_INSTRUMENT     AS M_INSTRUMENT
+,M_TRADENOT				  AS M_TRADENOT
+,M_TRADEOM        AS M_TRADEOM
+,M_TRADEOMW       AS M_TRADEOMW
+FROM CPRWATRN_DBF"
+"ERM_RWA_UTIL.REP    |SELECT
+M_CTRP       AS M_CTRP
+,M_ENTITY     AS M_ENTITY
+,M_NETLEVEL   AS M_NETLEVEL
+,M_NETGROUP   AS M_NETGROUP
+,M_TRADENOT	  AS M_TRADENOT	
+,M_TRADEOM    AS M_TRADEOM
+,M_TRADEOMW   AS M_TRADEOMW
+,M_SACCREAD   AS M_SACCREAD
+,M_SFTEAD     AS M_SFTEAD
+,M_TOTALEAD   AS M_TOTALEAD
+,M_ORIGMAT    AS M_ORIGMAT
+,M_RISKWEIGHT AS M_RISKWEIGHT
+,M_RWA        AS M_RWA
+,M_CCRCAPITAL AS M_CCRCAPITAL
+FROM CPRWAUTIL_DBF"
+"ERM_SACCR_TRN.REP   |SELECT
+M_TRNKEY	 AS M_TRNKEY	,
+M_ENTITY	 AS M_ENTITY	,
+M_TYPOLOGY	 AS M_TYPOLOGY	,
+M_NETGRP0    AS M_NETGRP0   ,
+M_NETGRP1    AS M_NETGRP1   ,
+M_NETGRP2    AS M_NETGRP2   ,
+M_NETGRP3    AS M_NETGRP3   ,
+M_NETGRP4    AS M_NETGRP4   ,
+M_MV		 AS M_MV		,
+M_PREHCCOL   AS M_PREHCCOL  ,
+M_CTRP       AS M_CTRP      ,
+M_COUNTRY	 AS M_COUNTRY	,
+M_COLLAT	 AS M_COLLAT	,
+M_DELTAADJ	 AS M_DELTAADJ	,
+M_CONTRACT	 AS M_CONTRACT	,
+M_TRADEICA	 AS M_TRADEICA	,
+M_ADDONTRADE AS M_ADDONTRADE,
+M_ADDONTRDUR AS M_ADDONTRDUR,
+M_EFNTNL	 AS M_EFNTNL	,
+M_SUBCLASS	 AS M_SUBCLASS	,
+M_MFURGND    AS M_MFURGND   ,
+M_SUPDURATN  AS M_SUPDURATN ,
+M_MF		 AS M_MF		,
+M_SUPFACTOR	 AS M_SUPFACTOR	,
+M_COLHAIRCUT AS M_COLHAIRCUT,
+M_TRADEDATE	 AS M_TRADEDATE	,
+M_ENDDATE	 AS M_ENDDATE	,
+M_STARTDATE	 AS M_STARTDATE	,
+M_PNTNL		 AS M_PNTNL		,
+M_ADJNTNL	 AS M_ADJNTNL	,
+M_MATURDATE  AS M_MATURDATE ,
+M_COLPOSTYPE AS M_COLPOSTYPE,
+M_INSTRUMENT AS M_INSTRUMENT,
+M_COLBALTYPE AS M_COLBALTYPE
+ from 
+ SACCRTRN_DBF"
+"ERM_SACCR_UTIL.REP  |SELECT
+M_CTRP		 AS M_CTRP		,
+M_MV         AS M_MV        ,
+M_PREHCCOL	 AS M_PREHCCOL	,
+M_COLLATERAL AS M_COLLATERAL,
+M_NETSETCNT	 AS M_NETSETCNT	,
+M_NICA       AS M_NICA      ,
+M_MTAPLUSTH	 AS M_MTAPLUSTH	,
+M_RPMCOST	 AS M_RPMCOST	,
+M_ENTITY     AS M_ENTITY    ,
+M_PFEURGND   AS M_PFEURGND  ,
+M_EADUNCAPD	 AS M_EADUNCAPD	,
+M_NETTINGLEV AS M_NETTINGLEV,
+M_MVMAX      AS M_MVMAX     ,
+M_MVMIN      AS M_MVMIN     ,
+M_ADDON      AS M_ADDON     ,
+M_ADDONURGND AS M_ADDONURGND,
+M_PFEMULTI   AS M_PFEMULTI  ,
+M_EADURGND	 AS M_EADURGND	,
+M_EAD        AS M_EAD       ,
+M_DELTAADJ   AS M_DELTAADJ  ,
+M_NETGRP0	 AS M_NETGRP0	,
+M_NETGRP1	 AS M_NETGRP1	,
+M_NETGRP2	 AS M_NETGRP2	,
+M_NETGRP3	 AS M_NETGRP3	,
+M_NETGRP4	 AS M_NETGRP4	,
+M_EFNTNL     AS M_EFNTNL    ,
+M_TRADEICA   AS M_TRADEICA  ,
+M_RPMCOSTURD AS M_RPMCOSTURD,
+M_PFE        AS M_PFE       ,
+M_MULTIPLIER AS M_MULTIPLIER,
+M_MULTIPLIUR AS M_MULTIPLIUR,
+M_ADDONTRADE AS M_ADDONTRADE,
+M_ADDONTRDUR AS M_ADDONTRDUR
+FROM SACCRUTIL_DBF"
+"ERM_SCISS_UTIL.REP  |SELECT
+    M_GROUP AS M_GROUP,
+    M_PILLAR AS M_PILLAR,
+    M_NETLEVEL AS M_NETLEVEL,
+    M_ENTITY AS M_ENTITY,
+    M_SECTOR AS M_SECTOR,
+    M_EXPOSURE AS M_EXPOSURE,
+    M_EXPLIM AS M_EXPLIM,
+    M_EXPCCY AS M_EXPCCY,
+    M_EXPUPC AS M_EXPUPC,
+    M_EXPA AS M_EXPA,
+    M_EXPAPC AS M_EXPAPC,
+    M_NETGP AS M_NETGP
+FROM
+    SCISSUTIL_DBF"
+"ERM_SCLEN_UTIL.REP  |SELECT
+M_SECTOR   AS M_SECTOR 
+,M_ENTITY   AS M_ENTITY
+,M_PILLAR   AS M_PILLAR
+,M_DATE     AS M_DATE
+,M_GROUP    AS M_GROUP
+,M_NOTIONAL AS M_NOTIONAL
+,M_MAXLIM   AS M_MAXLIM
+,M_LIMCCY	AS M_LIMCCY	
+,M_PCUTIL   AS M_PCUTIL
+,M_AVAIL    AS M_AVAIL
+,M_PCAVAIL  AS M_PCAVAIL
+FROM SCLENUTIL_DBF"
+"ERM_SCPSR_UTIL.REP  |SELECT
+    M_SECTOR AS M_SECTOR,
+    M_ENTITY AS M_ENTITY,
+    M_GROUP AS M_GROUP,
+    M_PILLAR AS M_PILLAR,
+    M_NETLEVEL AS M_NETLEVEL,
+    M_NETGP AS M_NETGP,
+    M_MVGROSS AS M_MVGROSS,
+    M_MVNET AS M_MVNET,
+    M_NGR AS M_NGR,
+    M_AOGROSS AS M_AOGROSS,
+    M_AONET AS M_AONET,
+    M_NETEXP AS M_NETEXP,
+    M_COLLATERAL AS M_COLLATERAL,
+    M_MITEXP AS M_MITEXP,
+    M_NETEXPLIM AS M_NETEXPLIM,
+    M_NETEXPCCY AS M_NETEXPCCY,
+    M_NETEXPUPC AS M_NETEXPUPC,
+    M_NETEXPA AS M_NETEXPA,
+    M_NETEXPAPC AS M_NETEXPAPC,
+    M_MITEXPMLIM AS M_MITEXPMLIM,
+    M_MITEXPCCY AS M_MITEXPCCY,
+    M_MITEXPUPC AS M_MITEXPUPC,
+    M_MITEXPA AS M_MITEXPA,
+    M_MITEXPAPC AS M_MITEXPAPC
+FROM 
+    SCPSRUTIL_DBF"
+"ERM_SCTCR_UTIL.REP  |SELECT
+M_SECTOR  AS M_SECTOR 
+,M_ENTITY  AS M_ENTITY
+,M_PILLAR  AS M_PILLAR
+,M_GROUP   AS M_GROUP
+,M_PSRUTIL AS M_PSRUTIL
+,M_ISSUTIL AS M_ISSUTIL
+,M_LENUTIL AS M_LENUTIL
+,M_TCRUTIL AS M_TCRUTIL
+,M_MAXLIM  AS M_MAXLIM
+,M_LIMCCY  AS M_LIMCCY
+,M_PCUTIL  AS M_PCUTIL
+,M_AVAIL   AS M_AVAIL
+,M_PCAVAIL AS M_PCAVAIL
+FROM SCTCRUTIL_DBF"
+"ERM_SEC_INF.REP     |select A.M_SE_TRDCL, A.M_SE_LABEL, B.M_SE_TCQ_L, C.M_SE_MQUO
+ from SE_ROOT_DBF A
+ left join SE_TRDC_DBF B on A.M_SE_TRDCL = B.M_SE_TRDCL
+ left join SE_TRDQ_DBF C on B.M_SE_TCQ_L = C.M_SE_TCQ_L"
+"ERM_SFT_TRN.REP     |SELECT
+ M_CTRP       AS M_CTRP
+,M_ENTITY     AS M_ENTITY
+,M_NETGP1     AS M_NETGP1
+,M_NETGP2     AS M_NETGP2
+,M_NETGP3     AS M_NETGP3
+,M_COLPOSTYPE     AS M_COLPOSTYPE
+,M_COLBALTYPE     AS M_COLBALTYPE
+,M_TYPOLOGY   AS M_TYPOLOGY
+,M_CONTRACT   AS M_CONTRACT
+,M_PORTFOLIO  AS M_PORTFOLIO
+,M_TRNKEY     AS M_TRNKEY
+,M_TRADEEXP   AS M_TRADEEXP
+,M_TRADECOL   AS M_TRADECOL
+,M_SECNP      AS M_SECNP
+,M_SNPVA      AS M_SNPVA
+,M_CCYNETPOS  AS M_CCYNETPOS
+,M_CCYNPVA    AS M_CCYNPVA
+,M_AGRTCOL    AS M_AGRTCOL
+,M_SUPCOLHC   AS M_SUPCOLHC
+,M_SECHC      AS M_SECHC
+,M_INSTRUMENT AS M_INSTRUMENT
+FROM CPSFTTRN_DBF"
+"ERM_SFT_UTIL.REP    |SELECT
+M_CTRP        AS M_CTRP 
+,M_ENTITY      AS M_ENTITY
+,M_NETLEVEL    AS M_NETLEVEL
+,M_TRADEXP     AS M_TRADEXP
+,M_TRADCOL     AS M_TRADCOL
+,M_CUREXP      AS M_CUREXP
+,M_SECPOS      AS M_SECPOS
+,M_SECPVA	   AS M_SECPVA	
+,M_CCYNETPOS   AS M_CCYNETPOS
+,M_CNPVOLADJ   AS M_CNPVOLADJ
+,M_NETEXP      AS M_NETEXP
+,M_AGRTCOL     AS M_AGRTCOL
+,M_MITEXP      AS M_MITEXP
+,M_NETGP1      AS M_NETGP1
+,M_NETGP2      AS M_NETGP2
+,M_NETGP3      AS M_NETGP3
+FROM CPSFTUTIL_DBF"
+"ERM_TRN_UDF.REP     |select A.M_MRG_VAL, A.M_MRG_CURR, A.M_MRG_DIR, A.M_MRG_MET, A.M_NB from TABLE#DATA#DEALIRD_DBF A     union 
+select A.M_MRG_VAL, A.M_MRG_CURR, A.M_MRG_DIR, A.M_MRG_MET, A.M_NB from TABLE#DATA#DEALCOM_DBF A   union 
+select A.M_MRG_VAL, A.M_MRG_CURR, A.M_MRG_DIR, A.M_MRG_MET, A.M_NB from TABLE#DATA#DEALCURR_DBF A  union 
+select A.M_MRG_VAL, A.M_MRG_CURR, A.M_MRG_DIR, A.M_MRG_MET, A.M_NB from  TABLE#DATA#DEALEQD_DBF A   union
+select A.M_MRG_VAL, A.M_MRG_CURR, A.M_MRG_DIR, A.M_MRG_MET, A.M_NB from TABLE#DATA#DEALIRD_DBF A      union
+select A.M_MRG_VAL, A.M_MRG_CURR, A.M_MRG_DIR, A.M_MRG_MET, A.M_NB from TABLE#DATA#DEALSCF_DBF A"
+"EVT_MAPPING.REP     |select M_ID, M_NAME, M_DESC from CLASS_MAPPING_DBF
+where M_NAME like 'mxContractEvent%'"
+"EVT_UDF.REP         |SELECT M_REFERENCE, M_EVT_VAAMT , M_EVT_VACCY
+FROM
+TABLE#DATA#EVENT_DBF"
+"FIXING_INDEX.REP    |select M_INDEX as M_INDEX, M_IND_LAB as M_INDEX_LAB from RT_INDEX_DBF"
+"INITIAL_DATA.REP    |select M_SNAP_ID as M_NB,
+M_LABEL,  
+M_REF,   
+M_TYPE,     
+M_CHAR_VAL, 
+M_NUM1_VAL,
+M_NUM2_VAL,
+M_DATE_VAL,
+M_ORDER  
+from NP_IDATA_DBF"
+"INSTRUMENTS.REP     |select M_REFERENCE, M_DSP_LABEL from TRN_PLIN_DBF"
+"PARTIES.REP         |select
+  CPDF.M_LABEL		as M_LABEL
+, CPDF.M_EMAIL      as M_EMAIL
+, CPDF.M_DSP_LABEL  as M_DSP_LABEL
+, CPDF.M_ID         as M_ID
+, CPDF.M_NAME       as M_NAME
+, CPDF.M_CODE       as M_CODE
+, CPDF.M_ADDRESS0   as M_ADDRESS0
+, CPDF.M_ADDRESS1   as M_ADDRESS1
+, CPDF.M_ADDRESS2   as M_ADDRESS2
+, CPDF.M_ADDRESS3   as M_ADDRESS3
+, CPDF.M_CITY       as M_CITY
+, CPDF.M_FAX        as M_FAX
+, CPDF.M_TEL        as M_TEL
+, CPDF.M_BROKER     as M_BROKER
+, CPDF.M_AGENT      as M_AGENT
+, CPDF.M_BANK       as M_BANK
+, CPDF.M_BRANCH     as M_BRANCH
+, CPDF.M_CLEARER    as M_CLEARER
+, CPDF.M_CLIENT     as M_CLIENT
+, CPDF.M_CORPORATE  as M_CORPORATE
+, CPDF.M_CUSTOMER   as M_CUSTOMER
+, CPDF.M_FICTIVE    as M_FICTIVE
+, CPDF.M_GROUP      as M_GROUP
+, CPDF.M_INT_PARTY  as M_INT_PARTY
+, CPDF.M_ISSUER     as M_ISSUER
+, CPDF.M_LEG_ENT    as M_LEG_ENT
+, CPDF.M_PARENT_CPY as M_PARENT_CPY
+, CPDF.M_STATE      as M_STATE
+, CPDF.M_SUBSIDIARY as M_SUBSIDIARY
+, CTRY.M_COUNTRY    as M_COUNTRY
+, CTP_UDF.M_CTP_CODE    as M_CIF --added as per BAB Requirment
+, CPDF.M_GARANTOR       as M_GARANTOR --added as per BAB Requirment
+, CPDF.M_CUSTODIAN      as M_CUSTODIAN --added as per BAB Requirment
+, CPDF.M_ISS_CAT        as M_ISS_CAT --added as per BAB Requirment
+, CPDF.M_SFT            as M_SFT --added as per  BAB Requirment
+, CTRY.M_DESC           as M_CTRY_DESC --added as per BAB Requirment
+, CTP_UDF.M_SEGMENT        as M_SEGMENT --added as per BAB Requirment
+, CTP_UDF.M_LEGAL_ID    as M_LEGAL_ID --added as per BAB Requirment
+, CTP_UDF.M_LEGAL_TYPE as M_LEGAL_TYPE -- Added by MXDev
+, TRIM(CTP_UDF.M_SECTOR_NAM) AS M_SECTOR_NAM --Added by MXDev 
+, CTP_UDF.M_SECTOR_ID AS M_SECTOR_ID --Added by MxDev
+from
+  TRN_CPDF_DBF CPDF
+  left join
+    CR_CTRY_DBF CTRY
+    on
+      CPDF.M_COUNTRY = CTRY.M_REFERENCE
+      --added as per BAB Requirment
+   left join 
+   TABLE#DATA#COUNTERP_DBF CTP_UDF
+    on CPDF.M_LABEL=CTP_UDF.M_LABEL
+      "
+"PERF_BM_ASG_ALL.REP |select Origin_table.* from ( select 
+        ptf.M_LEVEL,
+       case 
+       when bm.M_INV_LABEL <>'' then  bm.M_INV_LABEL 
+       else ptf.M_LABEL end as M_INV_LABEL,
+        ptf.M_LABEL as M_INV_PTF,
+        bm.M_REF_CLASS,
+        case
+        when bm.M_REF_LABEL <>'' then bm.M_REF_LABEL
+        else 'No Benchmark' end as M_REF_LABEL,
+        bm.M_INV_TYPE,
+        case
+        when bm.M_ASSIGN_LBL <>'' then bm.M_ASSIGN_LBL
+        else 'No Assignment' end as M_ASSIGN_LBL,
+        bm.M_REF_TYPE ,
+        bm.M_END_DATE ,
+        bm.M_MODEL_PTF ,
+        bm.M_START_DATE ,
+        bm.M_USAGE_LBL
+       -- bm.M_DEFAULT
+      from PERF_PTF_SIM_LVL_REP ptf 
+      left join PERF_BM_ASG_LVL_REP bm 
+      on ptf.M_LABEL = bm.M_INV_PTF AND ptf.M_LEVEL = bm.M_LEVEL
+) Origin_table
+where Origin_table.M_INV_PTF in (select M_INV_PTF from PERF_BM_ASG_LVL_REP)
+union
+select Origin_table2.* from ( select 
+        '#Technical' as M_LEVEL,
+       case 
+       when bm.M_INV_LABEL <>'' then  bm.M_INV_LABEL 
+       else ptf.M_LABEL end as M_INV_LABEL,
+        ptf.M_LABEL as M_INV_PTF,
+        bm.M_REF_CLASS,
+        case
+        when bm.M_REF_LABEL <>'' then bm.M_REF_LABEL
+        else 'No Benchmark' end as M_REF_LABEL,
+        bm.M_INV_TYPE,
+        case
+        when bm.M_ASSIGN_LBL <>'' then bm.M_ASSIGN_LBL
+        else 'No Assignment' end as M_ASSIGN_LBL,
+        bm.M_REF_TYPE ,
+        bm.M_END_DATE ,
+        bm.M_MODEL_PTF ,
+        bm.M_START_DATE ,
+        bm.M_USAGE_LBL
+       -- bm.M_DEFAULT
+      from PERF_PTF_SIM_LVL_REP ptf 
+      left join PERF_BM_ASG_LVL_REP bm 
+      on ptf.M_LABEL = bm.M_INV_PTF AND ptf.M_LEVEL = bm.M_LEVEL
+      where ptf.M_LEVEL = 'Level0'
+) Origin_table2
+where Origin_table2.M_INV_PTF not in (select M_INV_PTF from PERF_BM_ASG_LVL_REP)"
+"PERF_BM_ASG_LVL.REP |      select 
+        ptf.M_LEVEL,
+        ptf.M_LABEL as M_INV_LABEL,
+        bm.M_INV_PTF,
+        bm.M_REF_CLASS,
+        bm.M_REF_LABEL,
+        bm.M_INV_TYPE,
+        bm.M_ASSIGN_LBL,
+        bm.M_REF_TYPE ,
+        bm.M_END_DATE ,
+        bm.M_MODEL_PTF ,
+        bm.M_START_DATE ,
+        bm.M_USAGE_LBL
+      --  bm.M_DEFAULT
+      from PERF_PTF_ASG_LVL_REP ptf 
+      right join MX_PERF_ASSIGN_REP bm 
+      on ptf.M_LABEL = bm.M_INV_LABEL"
+"PERF_PTF_ASG_LVL.REP|SELECT M_LABEL, 'Level'+ CONVERT(varchar, ABS(M_HEIGHT-(select max(M_HEIGHT) from MUB#MUB_TREE_DBF))) as M_LEVEL 
+FROM MUB#MUB_TREE_DBF"
+"PERF_PTF_SIM_LVL.REP|select  M_LABEL, 'Level0' as M_LEVEL from MUB#MUB_TREE_DBF where M_HEIGHT = (select max(M_HEIGHT) from MUB#MUB_TREE_DBF)
+UNION 
+SELECT  M_LABEL, 'Level1' as M_LEVEL from MUB#MUB_TREE_DBF where M_HEIGHT =(select max(M_HEIGHT) from MUB#MUB_TREE_DBF)
+UNION 
+SELECT  M_LABEL, 'Level2' as M_LEVEL from MUB#MUB_TREE_DBF where M_HEIGHT =(select max(M_HEIGHT) from MUB#MUB_TREE_DBF)
+"
+"PERF_RF_KSA.REP     |select
+lut.M_PORTFOLIO, dm.M_INDEX_LAB, dm.M_VALUE as M_RF
+from PERF_RF_FIXINGS_REP dm
+join PERF_RF_LUT_KSA_REP lut
+on lut.M_INDEXNAME = dm.M_INDEX_LAB"
+"PERF_RF_LUT_KSA.REP |select
+M_PTF_BM as M_PORTFOLIO,
+M_INDEXNAME as M_INDEXNAME
+from UDTB271_DBF
+"
+"PL_ASS.REP          |select	
+PLIN.M_DSP_LABEL as M_INSTRLABEL,
+ASS.M_DATE,
+ASS.M_TRN_GRP,
+ASS.M_TRN_TYPE,
+ASS.M_INSTRUMENT,
+ASS.M_ORIGIN,
+ASS.M_DEST,
+ASS.M_CURRENCY,
+ASS.M_AMOUNT,
+ASS.M_CSNFU_CAP,
+ASS.M_CSNFU_REV,
+ASS.M_CSFU_CAP,
+ASS.M_CSFU_REV,
+ASS.M_CSNFR_CAP,
+ASS.M_CSNFR_REV,
+ASS.M_CSFR_CAP,
+ASS.M_CSFR_REV,
+ASS.M_NF_BRKR,
+ASS.M_F_BRKR,
+ASS.M_CV_FLAG
+from TRN_ASS_DBF ASS, TRN_PLIN_DBF PLIN
+where M_CV_FLAG = 0
+and M_DATE >= @FirstDate:D
+and M_DATE <= @LastDate:D
+and PLIN.M_REFERENCE=ASS.M_INSTRUMENT"
+"PS_AUDIT.REP        |select 
+M_DATE_CMP as M_START_DATE,
+-- correct End date in case a job started at day n-1 and ended at date n
+case
+	when M_TIME_CMP-(cast(to_char(to_date(M_TIME_ELAP,'hh24:mi:ss'),'sssss') as Numeric(30))) < 0 then M_DATE_CMP+ interval '1' day
+	else M_DATE_CMP 
+end as M_END_DATE,
+--convert elapsed,CPU,syabse time from string to number of seconds
+cast(to_char(to_date(M_TIME_ELAP,'hh24:mi:ss'),'sssss') as Numeric(30)) as M_ELAP_SEC,
+cast(to_char(to_date(M_TIME_CPU,'hh24:mi:ss'),'sssss') as Numeric(30)) as M_CPU_SEC,
+cast(to_char(to_date(M_TIME_SYB,'hh24:mi:ss'),'sssss')as Numeric(30)) as M_SYB_SEC,
+--Get start time in seconds and manage when End time is < start time (i.e script ended next day)
+case
+when (M_TIME_CMP-(cast(to_char(to_date(M_TIME_ELAP,'hh24:mi:ss'),'sssss') as Numeric(30)))) < 0 then 86400+(M_TIME_CMP-(cast(to_char(to_date(M_TIME_ELAP,'hh24:mi:ss'),'sssss') as Numeric(30))))
+  else (M_TIME_CMP-(cast(to_char(to_date(M_TIME_ELAP,'hh24:mi:ss'),'sssss') as Numeric(30))))
+END as M_START_TIME,
+M_TIME_CMP as M_END_TIME,
+SCRIPT as M_SCRIPT,
+M_ERR_COUNT as M_ERR_COUNT,
+M_DESC as M_DESC,
+cast(CNT_DM_UNITS as Numeric(38))as M_DM_UTS,
+cast(TRADES.NB_TRADES as Numeric(38))as  M_NB_TRADES,
+M_USER as M_USER,
+M_GROUP as M_GROUP,
+M_UNIT_NAME as M_UNIT_NAME,
+M_AUDT_TYPE as M_AUDT_TYPE,
+UNIT as M_UNIT,
+M_NPID as M_NPID
+
+from
+(
+select
+               M_DATE_SYS, 
+               M_DATE_CMP,
+               M_TIME_CMP,
+               M_COMMENT,
+               SUBSTR (M_COMMENT, INSTR(M_COMMENT,'[',1,1) +1 , (INSTR(M_COMMENT,']',1,1)-INSTR(M_COMMENT,'[',1,1)-1)) as SCRIPT,
+               ltrim(SUBSTR(M_COMMENT,-(length(M_COMMENT)-INSTR(M_COMMENT,': step',1,1)))) as UNIT,
+							 M_TIME_ELAP, 
+               M_TIME_CPU,
+               M_ERR_COUNT, 
+               M_TIME_SYB,
+               M_USER,
+               M_GROUP,
+               M_UNIT_NAME,
+					M_NPID,
+               case
+                  when M_COMMENT like '%] : step%' then 'By step'
+                  else 'By script'
+               end as M_AUDT_TYPE
+               from TRN_EODA_DBF
+               where 
+               M_COMMENT like '%Script%' 
+               and M_COMMENT not like '%] : Check%' 
+   						 and M_COMMENT not like '%: Summary%' 
+						   and M_COMMENT not like '%WRN:%' 
+						   and M_COMMENT not like 'WRN:%' 
+						   and M_COMMENT not like 'ER%' 
+               and M_START_END = 'END'
+               and M_DATE_CMP >=  @Start_date:D and M_DATE_CMP <= @End_date:D
+) AUDITA
+left join
+(
+               SELECT
+               SCRIPT.M_NAME,
+               SCRIPT.M_DESC,
+               DM_UNITS.CNT_DM_UNITS
+               FROM 
+               PROCESS#PS_SCRPT_DBF SCRIPT 
+                              LEFT JOIN 
+                              (SELECT 
+                              M_REF,
+                              COUNT(*) as CNT_DM_UNITS from PROCESS#PS_ITEM_DBF ITEM where M_UNIT in ('REPORTING','REP_BATCHES_EXT','REP_BATCHES_FEED','REP_BATCHES_PROC','REP_BATCHES_REP','BATCH-PRINT','MREPORTS_EXECUTE','REP_AUDIT_MAINTENANC','REP_VERIFY','REP_AUDIT_CLEAN','REP_PURGE_RULE','REP_JOB_PURGE','STOREDPROC_ADAPT','REP_ADAPT','EOD-DM-REFRESH','EOD-MD-REFRESH','EOD-SD-REFRESH','REP_AUTO_ARCHIVE','REP_DEL_DIR','DEALSCANNER_ITEMS','DEALSCANNER_TABLES')  
+                              GROUP BY M_REF) DM_UNITS
+                              ON SCRIPT.M_REF=DM_UNITS.M_REF
+) SCRIPTS
+on AUDITA.SCRIPT = SCRIPTS.M_NAME
+left join
+(
+               select 
+               M_TRN_DATE,
+               COUNT(*) as NB_TRADES
+               from TRN_HDR_DBF 
+               where 
+               M_TRN_DATE >= @Start_date:D and M_TRN_DATE <=@End_date:D
+               group by M_TRN_DATE
+) TRADES
+on AUDITA.M_DATE_CMP = TRADES.M_TRN_DATE"
+"RANGE_INDEX.REP     |SELECT M_RNG_NB AS M_RNG_NB
+    , M_RNG_INDEX AS M_RNG_INDEX
+    , M_RNG_RATE0 AS M_RNG_RATE0
+    , M_RNG_RATE1 AS M_RNG_RATE1
+    , M_PUBLICATION AS M_PUBLICATIO
+FROM RT_RANGE_DBF"
+"RATE_CURVES.REP     |select M_REFERENCE as M_RT_KEY, M_DLABEL as M_LABEL from RT_CT_DBF where M_EVALUATION=0 and M_REFERENCE<>0"
+"REC_NC_ACC.REP      |SELECT 
+ACT_CASH_DBF.M_REFERENCE as M_REFERENCE,
+ACT_CASH_DBF.M_LABEL as M_MX_ACCT_NB
+FROM ACT_CASH_DBF
+INNER JOIN ACT_CASHE_DBF ON ACT_CASHE_DBF.M_REFERENCE = ACT_CASH_DBF.M_REFERENCE
+WHERE ACT_CASHE_DBF.M_TYPE = 'Cash' AND ACT_CASHE_DBF.M_IS_REC = 1"
+"REC_NC_UDF.REP      |select
+dlv.M_REFERENCE as M_DLV_REF,
+dlv.M_PARENT_REF as M_PARENT_REF,
+udf.M_CR_FLW_REF as M_CR_FLW_REF,
+udf.M_CR_PRD_FLW as M_CR_PRD_FLW
+from DLV_CASH_DBF dlv
+inner join TRN_EXT_DBF ext on ext.M_ORIG_TRADE = dlv.M_TRD_REF
+inner join TRN_HDR_DBF hdr on hdr.M_LEXTREF = ext.M_REFERENCE
+left join TABLE#DATA#DEALSCF_DBF udf on udf.M_NB = ext.M_UDF_REF 
+where ((hdr.M_TRN_FMLY = 'SCF'  and dlv.M_STP_STATUS = 'Settled') or dlv.M_PARENT_REF <> 0)
+and hdr.M_TRN_STATUS = 'LIVE'
+and dlv.M_PROD_CVER = 0"
+"SD_BSK_COMP.REP     |select
+        -- fields common to indices with underlyings, but with different treatment per type
+		-- Basket index reference
+        IND.M_REFERENCE as M_BSK_INDREF,
+        case
+            when IND.M_RESET=4 then COMP.M_ORDER 
+            else 0
+        -- for baskets, component order
+		end as M_COMP_COUNT, 
+		-- Component weight
+        COMP.M_WEIGHT as M_COMPWEIGHT,
+		-- Component spread
+        COMP.M_SPREAD as M_COMPSPREAD,
+		-- Component power
+        COMP.M_POWER as M_COMPPOWER, 
+        case 
+            when COMP.M_CUSTOMIZED_CONVERSION=1 then 'CustomConversion' 
+            else ' ' 
+		-- Component customized conversion	
+        end	as M_COMP_CCONV,
+		-- Component conversion
+        COMP.M_CONVERSION as M_COMP_CONV,
+        case
+            when IND.M_RESET=4 then BC.M_IND_LAB -- for baskets, provide underlying label
+            when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CMFUT.M_LABEL -- for commodity future indices and nearbies, provide the future label
+            else AU_IND.M_IND_LAB -- for compound/average/start-end, provide the underlying
+        end as M_COMPONENT,
+		-- Component Description
+        case
+            when IND.M_RESET=4 then BC.M_IND_DESC
+            else AU_IND.M_IND_DESC
+        end as M_COMP_DESC,
+        -- Component category
+        case
+            when IND.M_RESET=4 then
+                case
+                    when BC.M_CATEGORY=0 then 'Rate'
+                    when BC.M_CATEGORY=1 then 'Equity'
+                    when BC.M_CATEGORY=2 then 'Bond'
+                    when BC.M_CATEGORY=3 then 'Inflation'
+                    when BC.M_CATEGORY=4 then 'FX spot'
+                    when BC.M_CATEGORY=5 then 'Pool factor'
+                    when BC.M_CATEGORY=6 then 'Generic index'
+                    when BC.M_CATEGORY=7 then 'Formula'
+                    when BC.M_CATEGORY=8 then 'Commodity'
+                    when BC.M_CATEGORY=9 then 'ComFutureMaturity'
+                    else cast(AU_IND.M_CATEGORY as char(10)) -- there should not be others
+                end
+            else 
+                case
+                    when AU_IND.M_CATEGORY=0 then 'Rate'
+                    when AU_IND.M_CATEGORY=1 then 'Equity'
+                    when AU_IND.M_CATEGORY=2 then 'Bond'
+                    when AU_IND.M_CATEGORY=3 then 'Inflation'
+                    when AU_IND.M_CATEGORY=4 then 'FX spot'
+                    when AU_IND.M_CATEGORY=5 then 'Pool factor'
+                    when AU_IND.M_CATEGORY=6 then 'Generic index'
+                    when AU_IND.M_CATEGORY=7 then 'Formula'
+                    when AU_IND.M_CATEGORY=8 then 'Commodity'
+                    when AU_IND.M_CATEGORY=9 then 'ComFutureMaturity'
+                else cast(AU_IND.M_CATEGORY as char(10)) -- there should not be others
+                end
+        end as M_COMP_CATEG,
+		-- Component type
+        case
+            when IND.M_RESET=4 then
+                case
+                    when BC.M_RESET=0 then 'Published'
+                    when BC.M_RESET=2 then 'Compounded'
+                    when BC.M_RESET=3 then 'Average'
+                    when BC.M_RESET=4 then 'Basket'
+                    when BC.M_RESET=5 then 'Start-end'
+                    when BC.M_RESET=6 then 'Nearby'
+                    else cast(BC.M_RESET as char(10)) -- there should not be others
+                end
+            when (IND.M_CATEGORY=9 or IND.M_RESET=6) then -- for Commodity future indices and nearbies, list the type of instrument underlying
+                case
+                    when CMFUT.M_LISTED=1 then 'Future'
+                    when CMFUT.M_LISTED=2 then 'Forward'
+                    when CMFUT.M_LISTED=16 then 'Cleared swap'
+                    when CMFUT.M_LISTED=32 then 'Cleared asian'
+                    when CMFUT.M_LISTED=64 then 'Listed option on Future'
+                    else '?Missing'
+                end
+            else
+                case
+                    when AU_IND.M_RESET=0 then 'Published'
+                    when AU_IND.M_RESET=2 then 'Compounded'
+                    when AU_IND.M_RESET=3 then 'Average'
+                    when AU_IND.M_RESET=4 then 'Basket'
+                    when AU_IND.M_RESET=5 then 'Start-end'
+                    when AU_IND.M_RESET=6 then 'Nearby'
+                    else cast(AU_IND.M_RESET as char(10)) -- there should not be others
+                end
+        end as M_COMP_TYPE,
+		-- Component currency
+        case 
+            when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CFI_QUOT.M_CURR -- future index and nearby, read from the index quotation
+            when IND.M_RESET=0 then null -- there is no component here
+            when IND.M_RESET=4 then BC.M_COM_CUR
+            when IND.M_RESET>0 then AU_QUOT.M_CURR -- take from underlying
+            else '?Unknown'
+        end as M_COMP_CUR,
+        -- Component quotation		
+        case 
+            when IND.M_RESET=4 then BC_QUOT.M_LABEL
+            when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CFI_QUOT.M_LABEL
+            else AU_QUOT.M_LABEL 
+        end as M_COMP_QUOT,
+		-- Component quotation currency
+        case 
+            when IND.M_RESET=4 then BC_QUOT.M_CURR
+            when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CFI_QUOT.M_CURR
+            else AU_QUOT.M_CURR
+        end as M_COMP_Q_CUR,
+		-- Component quotation price factor
+        case 
+            when IND.M_RESET=4 then cast(BC_QUOT.M_PRC_FACT as numeric(16,8))
+            when (IND.M_CATEGORY=9 or IND.M_RESET=6) then cast(CFI_QUOT.M_PRC_FACT as numeric(16,8))
+            else cast(AU_QUOT.M_PRC_FACT as numeric(16,8))
+        end as M_COMP_P_FAC, -- note: UQ fields not handled if underlying is a basket
+		-- Component quotation unit
+        case 
+            when IND.M_RESET=4 then BC_QUNIT.M_LABEL
+            when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CFI_QUNIT.M_LABEL
+            else AU_QUNIT.M_LABEL  
+        end as M_COMP_QUNIT,
+        case 
+            when IND.M_RESET=4 then BC_DUNIT.M_LABEL
+            when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CFI_DUNIT.M_LABEL
+            else AU_DUNIT.M_LABEL 
+        end as M_COMP_DEL_U
+		-- Component Serie        
+    from
+        RT_INDEX_DBF IND -- main index table (average level)
+        -- ""Basket"" joins
+        join RT_INDBK_COMPONENT_DBF COMP on IND.M_REFERENCE = COMP.M_BASKET_REFERENCE -- reference of basket components to the main basket -- this is deliberately NO ""left"" join
+        left join RT_INDEX_DBF BC on COMP.M_INDEX = BC.M_INDEX -- link to the underlying component
+        left join CMC_QUOT_DBF BC_QUOT on BC.M_COM_QUOT = BC_QUOT.M_REFERENCE -- reference of the component quotation
+        left join CM_UNIT_DBF BC_DUNIT on BC_QUOT.M_QTY_UNIT = BC_DUNIT.M_REFERENCE	-- reference to unit table for component delivery unit
+        left join CM_UNIT_DBF BC_QUNIT on BC_QUOT.M_UNIT = BC_QUNIT.M_REFERENCE	-- reference to unit table for component quotation unit
+       -- ""Average"" joins
+        left join RT_INDEX_DBF AU_IND on IND.M_UNDRL = AU_IND.M_INDEX -- index table (underlying level)
+        left join CMC_QUOT_DBF AU_QUOT on AU_IND.M_COM_QUOT = AU_QUOT.M_REFERENCE -- reference to quotation table
+        left join CM_UNIT_DBF AU_DUNIT on AU_QUOT.M_QTY_UNIT = AU_DUNIT.M_REFERENCE -- reference to unit table for delivery unit
+        left join CM_UNIT_DBF AU_QUNIT on AU_QUOT.M_UNIT = AU_QUNIT.M_REFERENCE -- reference to unit table for quotation unit
+
+        -- ""Future index"" joins
+        left join CM_FUT_DBF CMFUT on IND.M_COM_FUT=CMFUT.M_REFERENCE	-- reference to underlying future (works for future index and nearby)
+        left join CM_FMAT1_DBF CFI_MAT on IND.M_COM_MAT = CFI_MAT.M_REFERENCE	-- reference to underlying future maturity
+        left join CMC_QUOT_DBF CFI_QUOT on IND.M_COM_QUOT=CFI_QUOT.M_REFERENCE	-- reference to underlying quotation (works for future index, nearby and com spot)
+        left join CM_UNIT_DBF CFI_DUNIT on CFI_QUOT.M_QTY_UNIT = CFI_DUNIT.M_REFERENCE	-- reference to unit table for future index delivery unit
+        left join CM_UNIT_DBF CFI_QUNIT on CFI_QUOT.M_UNIT = CFI_QUNIT.M_REFERENCE	-- reference to unit table for future index quotation unit
+        left join CM_MKT_DBF CFI_PUB on CFI_QUOT.M_PUBLI=CFI_PUB.M_REFERENCE"
+"SD_INDEX.REP        |select
+        -- Common index fields, using ONLY RT_INDEX
+		-- Creation mode
+        case 
+            when IND.M_CREAT_MODE=0 then 'User-defined' 
+            else 'Customized'
+        end as M_CREATEMODE, 
+		-- Index Category
+        case
+            when IND.M_CATEGORY=0 then 'Rate'
+            when IND.M_CATEGORY=1 then 'Equity'
+            when IND.M_CATEGORY=2 then 'Bond'
+            when IND.M_CATEGORY=3 then 'Inflation'
+            when IND.M_CATEGORY=4 then 'FX spot'
+            when IND.M_CATEGORY=5 then 'Pool factor'
+            when IND.M_CATEGORY=6 then 'Generic index'
+            when IND.M_CATEGORY=7 then 'Formula'
+            when IND.M_CATEGORY=8 then 'Commodity'
+            when IND.M_CATEGORY=9 then 'ComFutureMaturity'
+            else cast(IND.M_CATEGORY as char(10)) -- there should not be others
+        end as M_IND_CATEG, -- column for later merge with other index types
+		-- Index type
+        case
+            when IND.M_RESET=0 then 'Published'
+            when IND.M_RESET=2 then 'Compounded'
+            when IND.M_RESET=3 then 'Average'
+            when IND.M_RESET=4 then 'Basket'
+            when IND.M_RESET=5 then 'Start-end'
+            when IND.M_RESET=6 then 'Nearby'
+            else cast(IND.M_RESET as char(10)) -- there should not be others
+        end as M_IND_TYPE,
+		-- Index label
+        IND.M_IND_LAB as M_IND_LABEL,
+        -- Index reference 
+        IND.M_REFERENCE as M_IND_REF,
+        -- Deletion date		
+        IND.M_LOG_DEL as M_DEL_DATE,	-- if not null: date at which index was logically deleted (i.e. removed from visibility from pricing)
+        -- Rounding rule
+		case 
+            when IND.M_CRND_RULE=0 then ' '
+            when IND.M_CRND_RULE=1 then 'Nearest'
+            -- other rules to be documented
+            else cast(IND.M_CRND_RULE as char(10))
+        end as M_ROUND_RULE,
+		-- Rounding decimals
+        case
+            when IND.M_CRND_RULE=0 then null
+            else IND.M_CRND_DEC
+        end as M_ROUND_DEC,
+        -- ""Average/Compounded/Start-end"" fields
+        -- Average fixing schedule		
+        IND.M_UEI as M_AVG_FIXSCH,
+		-- Average shifter first 
+        case
+            when IND.M_F_SHIFT=1 then IND.M_F_SHIFTER 
+            else ' ' 
+        end as M_AVG_SHFFST,
+		-- Average shifter last
+        case
+            when IND.M_L_SHIFT=1 then IND.M_L_SHIFTER 
+            else ' '
+        end as M_AVG_SHFLST,
+        IND.M_U_FSHIFT as M_U_FSHIFT,
+        IND.M_U_LSHIFT as M_U_LSHIFT,
+        -- ""Basket"" fields
+		-- Basket type
+        case
+            when IND.M_RESET<>4 then ' ' -- filter out not relevant items
+            when IND.M_BSK_MODE=0 then 'WeightedAverage'
+            when IND.M_BSK_MODE=1 then 'Sum'
+            when IND.M_BSK_MODE=2 then 'Multiplication'
+            when IND.M_BSK_MODE=3 then 'Max'
+            when IND.M_BSK_MODE=4 then 'Min'
+            when IND.M_BSK_MODE=5 then 'Ratio'
+            when IND.M_BSK_MODE=6 then 'Inverse'
+            when IND.M_BSK_MODE=7 then 'UserDefined'
+            else 'Unknown Basket Type'
+        end as M_BSK_TYPE,
+		-- Basket treatment
+        case 
+            when IND.M_AVG_UND=0 then ' '
+            when IND.M_AVG_UND=3 then 'Average'
+            when IND.M_AVG_UND=5 then 'Start-end'
+            else 'Unknown underlying averaging mode'
+        end as M_BSK_TREAT,
+		-- Basket treatment schedule
+        case 
+            when IND.M_AVG_UND=0 then ' '
+            else IND.M_UEI
+        end as M_BSK_SCH,
+        -- Commodity nearby index fields
+        case 
+            when IND.M_COM_NBY_T=0 then null
+            when IND.M_COM_NBY_T=2 then 'Index'
+            else 'Future'
+        end as M_NEARB_TYPE,
+		-- Commodity nearby order
+        case 
+            when IND.M_COM_NBY_T=1 then IND.M_COM_NBY_O
+    --        when IND.M_COM_NBY_T=2 then 0
+            else 0
+        end as M_NEARB_ORD
+    -- to get fields needed for future joins to other tables: when building the extraction just join with M_REFERENCE to get all details
+    from
+        RT_INDEX_DBF IND -- main index table (average level)"
+"SD_INDEX_UND.REP    |select 
+    -- Underlying index reference
+    IND.M_REFERENCE as M_U_IND_REF,
+	-- Index description
+	case
+		when IND.M_CATEGORY=8 then
+			case 
+				when IND.M_RESET=0 then CMIND.M_DESC
+				else IND.M_IND_DESC
+			end
+		else IND.M_IND_DESC
+	end as M_IND_DESC,
+	-- Index currency
+    case 
+		when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CFI_QUOT.M_CURR
+		when (IND.M_CATEGORY=8 and IND.M_RESET=0) then CFI_QUOT.M_CURR
+		when IND.M_CURRENCY=' ' then AU_IND.M_CURRENCY
+		else IND.M_CURRENCY
+	end as M_IND_CUR, -- look for underlying if not found. It is not ideal, it is better to work out a subquery to list underlyings and then join on that basis
+	-- Index publication
+	case
+		when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CFI_PUB.M_LABEL
+		when (IND.M_CATEGORY=8 and IND.M_RESET=0) then CFI_PUB.M_LABEL
+		else RTG.M_GRP_DESC 
+	end as M_IND_PUB,
+	-- Index publication calendar
+	case
+		when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CFI_PUB.M_CALENDAR
+		when (IND.M_CATEGORY=8 and IND.M_RESET=0) then CFI_PUB.M_CALENDAR
+		else RTG.M_CALENDAR
+	end as M_IND_PUBCAL,
+	-- Commodity quotation
+	CFI_QUOT.M_LABEL as M_COM_QUOT,	-- for Commodity only
+	-- Commodity quotation symbol
+	CFI_QUOT.M_TRAD_SMB as M_COM_Q_SYMB,
+	-- Commodity quotation price factor
+	CFI_QUOT.M_PRC_FACT as M_COM_Q_PFAC,
+    -- Commodity quotation unit
+	case
+		when IND.M_RESET=3 then AU_QUNIT.M_LABEL
+		when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CFI_QUNIT.M_LABEL
+		when (IND.M_CATEGORY=8 and IND.M_RESET=0) then CFI_QUNIT.M_LABEL
+		else IND_QUNIT.M_LABEL
+	end as M_COM_Q_UNIT,	-- for Commodity only
+	-- Commodity delivery unit
+    case
+		when IND.M_RESET=3 then AU_DUNIT.M_LABEL
+		when (IND.M_CATEGORY=9 or IND.M_RESET=6) then CFI_DUNIT.M_LABEL
+		when (IND.M_CATEGORY=8 and IND.M_RESET=0) then CFI_DUNIT.M_LABEL
+		else IND_DUNIT.M_LABEL 
+	end as M_COM_DEL_U,	-- for Commodity only
+	-- Commodity price width
+	CFI_QUOT.M_PRC_WIDTH as M_Q_PWIDTH,	-- for Commodity spot/nearby only
+	-- Commodity price decimals
+	CFI_QUOT.M_PRC_DEC as M_Q_PDEC,	-- for Commodity spot/nearbyonly
+	-- Commodity volatility width
+	CFI_QUOT.M_VOL_WIDTH as M_Q_VOLWIDTH,	-- for Commodity spot/nearbyonly
+	-- Commodity volatility decimals
+	CFI_QUOT.M_VOL_DEC as M_Q_VOL_DEC,	-- for Commodity spot/nearbyonly
+    -- Commodity maturity
+    case 
+		when IND.M_CATEGORY=9 then CFI_MAT.M_LABEL	-- for future index: maturity
+		when IND.M_RESET=6 then
+			case
+				when IND.M_COM_NBY_T=2 then IND.M_UECF -- for Index nearby: shifter
+				when IND.M_COM_NBY_R=1 then 'Notice'	-- for future nearby: reference
+				when IND.M_COM_NBY_R=0 then 'Expiry'
+				else cast(IND.M_COM_NBY_R as char(10)) -- there should not be others
+			end
+		else null -- not relevant
+    end as M_COM_MAT,
+	-- Com Spot index fields
+	-- Commodity location
+	CMLOC.M_LABEL as M_COM_LOC,
+	-- Commodity location time zone
+	TZ.M_LABEL as M_LOC_TIMEZ,
+	-- Commodity product type
+	CMPTYPE.M_LABEL as M_COM_P_TYPE,
+	-- Commodity product
+	CMPROD.M_LABEL as M_COM_PROD
+from
+    RT_INDEX_DBF IND
+	left join RT_GROUP_DBF RTG on IND.M_HISFILE = RTG.M_HISFILE -- reference to publication
+	left join CM_UNIT_DBF IND_DUNIT on IND.M_UNIT_REF1 = IND_DUNIT.M_REFERENCE	-- reference to unit table for basket delivery unit
+	left join CM_UNIT_DBF IND_QUNIT on IND.M_UNIT_REF0 = IND_QUNIT.M_REFERENCE	-- reference to unit table for basket quotation unit
+	
+	-- ""Average"" joins
+	left join RT_INDEX_DBF AU_IND on IND.M_UNDRL = AU_IND.M_INDEX -- index table (underlying level)
+	left join CMC_QUOT_DBF AU_QUOT on AU_IND.M_COM_QUOT = AU_QUOT.M_REFERENCE -- reference to quotation table
+	left join CM_UNIT_DBF AU_DUNIT on AU_QUOT.M_QTY_UNIT = AU_DUNIT.M_REFERENCE -- reference to unit table for delivery unit
+	left join CM_UNIT_DBF AU_QUNIT on AU_QUOT.M_UNIT = AU_QUNIT.M_REFERENCE -- reference to unit table for quotation unit
+
+	-- ""Future index"" joins
+	left join CM_FUT_DBF CMFUT on IND.M_COM_FUT=CMFUT.M_REFERENCE	-- reference to underlying future (works for future index and nearby)
+	left join CM_FMAT1_DBF CFI_MAT on IND.M_COM_MAT = CFI_MAT.M_REFERENCE	-- reference to underlying future maturity
+	left join CMC_QUOT_DBF CFI_QUOT on IND.M_COM_QUOT=CFI_QUOT.M_REFERENCE	-- reference to underlying quotation (works for future index, nearby and com spot)
+	left join CM_UNIT_DBF CFI_DUNIT on CFI_QUOT.M_QTY_UNIT = CFI_DUNIT.M_REFERENCE	-- reference to unit table for future index delivery unit
+	left join CM_UNIT_DBF CFI_QUNIT on CFI_QUOT.M_UNIT = CFI_QUNIT.M_REFERENCE	-- reference to unit table for future index quotation unit
+	left join CM_MKT_DBF CFI_PUB on CFI_QUOT.M_PUBLI=CFI_PUB.M_REFERENCE
+	
+	-- ""Commodity spot index"" joins
+	left join CM_INDEX_DBF CMIND on IND.M_COM_IND=CMIND.M_REFERENCE
+	left join CM_LOCAT_DBF CMLOC on CMIND.M_LOCATION = CMLOC.M_REFERENCE 
+	left join DAT_TZONE_DBF TZ on CMLOC.M_TIME_ZONE = TZ.M_REFERENCE
+	left join CM_PHYS_DBF CMPROD on CMIND.M_PHYSICAL = CMPROD.M_REFERENCE
+	left join CM_PTYPE_DBF CMPTYPE on CMPROD.M_TYPE = CMPTYPE.M_REFERENCE"
+"SECURITIES.REP      |select HEAD.M_SE_LABEL as M_SE_LABEL,HEAD.M_SE_CODE as M_SE_CODE, HEAD.M_SE_ISIN as M_SE_ISIN,  ROOT.M_SE_MARKET as M_SE_MARKET, HEAD.M_SE_D_LABEL as M_SE_D_LABEL, 
+HEAD.M_SE_F_NAME as M_SE_F_NAME,HEAD.M_SE_COUP as M_SE_COUP,HEAD.M_SE_NISS as M_SE_NISS,HEAD.M_SE_NOUT as M_SE_NOUT
+,CTRY.M_COUNTRY as M_COUNTRY,CTRY.M_AREA, HEAD.M_SE_SECTOR, SECTOR.M_LABEL as M_SECTOR_LBL,
+HEAD.M_SE_MAT as M_SE_MAT, HEAD.M_SE_ISSD as M_SE_ISSD,
+COUPON_VAL.M_LABEL as M_BT_COUPON, SECTOR_VAL.M_LABEL as M_BT_SECTOR,INDUSTRY_VAL.M_LABEL as M_BT_IND_TYP,
+SECUDF.M_EQ_CODE AS M_UDF_EQCD, SECUDF.M_INV_TYPE AS M_UDF_INVTYP, SECUDF.M_BOND_TYPO AS M_UDF_BNDTYP
+,CTRY.M_DESC as M_CTRY_DESC,HEAD.M_SE_GROUP,ROOT.M_SE_CUR,HEAD.M_SE_ISS,HEAD.M_SE_TYPE, ECH.M_DEF_UNIT, ECH.M_DEF_FREQ
+--, LNGN.M_INDEX0 
+from 
+SE_HEAD_DBF HEAD, SE_ROOT_DBF ROOT , CR_CTRY_DBF CTRY, TRN_SECTOR_DBF SECTOR,
+UTYPO_T_MAP_DBF COUPON_MAP, UTYPO_VAL_DBF COUPON_VAL,
+UTYPO_T_MAP_DBF SECTOR_MAP, UTYPO_VAL_DBF SECTOR_VAL,
+UTYPO_T_MAP_DBF INDUSTRY_MAP, UTYPO_VAL_DBF INDUSTRY_VAL,
+TABLE#DATA#SECURITI_DBF SECUDF, RT_INDEX_DBF IDX, DAT_ECH_DBF ECH
+, (SELECT SE_MKTOP_DBF.*, MAX(SE_MKTOP_DBF.M_SE_EVTIMP_REF) OVER (PARTITION BY M_SE_LABEL) AS MAX_EVT FROM SE_MKTOP_DBF) MKTOP
+, BD_BOND_DBF BOND, RT_LNSEC_DBF LNSEC
+, RT_INSGN_DBF INSGN, RT_LNGN_DBF LNGN 
+where HEAD.M_SE_LABEL = ROOT.M_SE_LABEL and ROOT.M_SE_DE<>'Y'
+and HEAD.M_SE_COUNTRY = CTRY.M_REFERENCE(+)
+and HEAD.M_SE_SECTOR= SECTOR.M_REFERENCE(+)
+and HEAD.M_REF_TYPE=COUPON_MAP.M_REF_TYPE(+) and 5=COUPON_MAP.M_REF_PROP(+)
+and HEAD.M_REF_TYPE=SECTOR_MAP.M_REF_TYPE(+) and 16=SECTOR_MAP.M_REF_PROP(+)
+and HEAD.M_REF_TYPE=INDUSTRY_MAP.M_REF_TYPE(+) and 11=INDUSTRY_MAP.M_REF_PROP(+)
+and COUPON_MAP.M_REF_VAL=COUPON_VAL.M_REFERENCE(+)
+and SECTOR_MAP.M_REF_VAL=SECTOR_VAL.M_REFERENCE(+)
+and INDUSTRY_MAP.M_REF_VAL=INDUSTRY_VAL.M_REFERENCE(+)
+and HEAD.M_SE_LABEL=SECUDF.M_SE_LABEL(+)
+and HEAD.M_SE_LABEL = MKTOP.M_SE_LABEL (+)
+and MKTOP.M_SE_INUM = BOND.M_BD_INUM (+)
+and LNSEC.M_NB = BOND.M_BD_INUM 
+and INSGN.M_GEN_NUM = LNSEC.M_GEN_NUM (+)
+and LNGN.M_GEN_NUM = INSGN.M_GEN_NUM (+)
+and LNGN.M_INDEX0 = IDX.M_INDEX (+)
+and IDX.M_RAT_PERIOD = ECH.M_LABEL (+)
+and MKTOP.M_SE_EVTIMP_REF = MKTOP.MAX_EVT"
+"STPDOC_ENTRY_UTI.REP|select distinct FC_ID as M_FC_ID,STPDOC_DATA_TYPE1 as M_UTI_REF,STPDOC_DATA_TYPE2 as M_DEAL_REF
+from STPDOC_ENTRY_TABLE
+where TRIM(STPDOC_DATA_TYPE1) is not null and TRIM(STPDOC_DATA_TYPE2) is not null"
+"STPFC_ENTRY_TBL.REP |/*select 
+TS_TIME_LONG as M_TSTME_LONG, STATUS_TAKEN as M_STS_TKN, STATUS_TIME_LONG as M_STS_TMLNG, REFERENCE_ID as M_REF_ID,
+XMLFLOW_STATUS as M_XMLFLWST,  STP_STATUS_VALIDATION_LEVEL as M_STP_VL_LVL, JOB_DATE as M_JOB_DT, 
+JOB_DESCRIPTION as M_JOB_DESC, JOB_TIME as M_JOB_TIME, STP_LAST_VALIDATION_DATE AS M_STP_LTVLDT, STP_LAST_VALIDATION_TIME as M_STP_LTVLTM,
+STP_LAST_VALIDATOR as M_STP_LST_VD, STP_LAST_VALIDATOR_GROUP as M_STP_LVGP,
+TARGET_TIME as M_TGT_TIME, FC_ID as M_FC_ID, FC_ORIGIN_ID as M_ORIG_CNT, FC_TYPOLOGY as M_FC_TYPO,
+FC_VERSION as M_FC_VER, FOP_INITIATOR_USER as M_FOP_INITR, FOP_INITIATOR_GROUP as M_FOP_INT_GP, FOP_ISSUER_USER as M_FOP_IS_USR,
+FOP_ISSUER_GROUP as M_FOP_IS_GP from STPFC_ENTRY_TABLE*/
+/*SELECT DISTINCT
+STP_LAST_VALIDATOR AS M_STP_LST_VD,
+MIN(STATUS_TIME_LONG) AS M_STS_TMLNG,
+STP_STATUS_VALIDATION_LEVEL AS M_STP_VL_LVL,
+FOP_INITIATOR_GROUP AS M_FOP_INT_GP,
+FOP_ISSUER_USER AS M_FOP_IS_USR,
+B.M_DESC AS M_USER_NAME
+FROM STPFC_ENTRY_TABLE A, MX_USER_DBF B
+WHERE (TRIM(STP_LAST_VALIDATOR)<>'' OR TRIM(STP_LAST_VALIDATOR) IS NOT NULL) 
+AND (TRIM(A.STP_LAST_VALIDATOR)=TRIM(B.M_LABEL) or TRIM(A.FOP_ISSUER_USER)=TRIM(B.M_LABEL))
+GROUP BY STP_LAST_VALIDATOR, STP_STATUS_VALIDATION_LEVEL, FOP_INITIATOR_GROUP, FOP_ISSUER_USER, B.M_DESC */
+/*select distinct A.STP_LAST_VALIDATOR as M_STP_LST_VD, A.FC_ID as M_FC_ID, A.STP_STATUS_VALIDATION_LEVEL as M_STP_VL_LVL, A.STP_LAST_VALIDATOR_GROUP as M_STP_LVGP,
+A.FOP_INITIATOR_GROUP as M_FOP_INT_GP, B.M_DESC as M_USERNAME,MIN(TO_CHAR(A.STATUS_TIME_LONG / (1000 * 60 * 60 * 24) + TO_DATE('1970-01-01 08:00:00', 'YYYY-MM-DD HH:MI:SS'), 'YYMMDDHH24MI')) as M_STP_LTVLTM from 
+STPFC_ENTRY_TABLE A, MX_USER_DBF B where TRIM(A.STP_LAST_VALIDATOR)=TRIM(B.M_LABEL) and 
+A.STP_STATUS_VALIDATION_LEVEL in ('Initial','NonEcoValidated','EventPending','Matched') and TRIM(A.STP_LAST_VALIDATOR)<>' '
+group by A.STP_LAST_VALIDATOR, A.FC_ID, A.STP_STATUS_VALIDATION_LEVEL, A.STP_LAST_VALIDATOR_GROUP, A.FOP_INITIATOR_GROUP, B.M_DESC
+*/
+/*select distinct MAX(A.STP_LAST_VALIDATOR) as M_STP_LST_VD, A.FC_ID as M_FC_ID, MAX(A.STP_STATUS_VALIDATION_LEVEL) as M_STP_VL_LVL, MAX(A.STP_LAST_VALIDATOR_GROUP) as M_STP_LVGP,
+MAX(A.FOP_INITIATOR_GROUP) as M_FOP_INT_GP, MAX(B.M_DESC) as M_USERNAME, MAX(TO_CHAR(A.STATUS_TIME_LONG / (1000 * 60 * 60 * 24) + TO_DATE('1970-01-01 08:00:00', 'YYYY-MM-DD HH:MI:SS'), 'YYMMDDHH24MI')) as M_STP_LTVLTM from 
+STPFC_ENTRY_TABLE A, MX_USER_DBF B where TRIM(A.STP_LAST_VALIDATOR)=TRIM(B.M_LABEL) and 
+A.STP_STATUS_VALIDATION_LEVEL in ('Initial','NonEcoValidated','EventPending','Matched') and TRIM(A.STP_LAST_VALIDATOR)<>' '
+group by A.FC_ID*/
+select distinct A.STP_LAST_VALIDATOR as M_STP_LST_VD, A.FC_ID as M_FC_ID, A.STP_STATUS_VALIDATION_LEVEL as M_STP_VL_LVL,A.STP_LAST_VALIDATOR_GROUP as M_STP_LVGP,
+A.FOP_INITIATOR_GROUP as M_FOP_INT_GP, B.M_DESC as M_USERNAME, TO_CHAR(A.STATUS_TIME_LONG / (1000 * 60 * 60 * 24) + TO_DATE('1970-01-01 08:00:00', 'YYYY-MM-DD HH:MI:SS'), 'YYMMDDHH24MI') as M_STP_LTVLTM from 
+STPFC_ENTRY_TABLE A, MX_USER_DBF B where TRIM(A.STP_LAST_VALIDATOR)=TRIM(B.M_LABEL) and 
+A.STP_STATUS_VALIDATION_LEVEL in ('Initial','NonEcoValidated','EventPending','Matched') and TRIM(A.STP_LAST_VALIDATOR)<>' '
+"
+"T24_SSI_RECON.REP   |SELECT 
+SI.M_START as M_START,
+SI.M_END as M_END,
+SI.M_TYPE as M_TYPE,
+SI.M_CURRENCY as M_CURRENCY,
+SI.M_NATURE as M_NATURE,
+SI.M_STL_METHOD as M_STL_METHOD,
+PTF.M_DSP_LABEL as M_DSP_LABEL,
+UDF.M_CSNS_ACC as  M_CSNS_ACC,
+UDF.M_BEN_ACC as M_BEN_ACC,
+UDF.M_BEN_SWF as M_BEN_SWF,
+UDF.M_INT1_LBL as M_INT1_LBL,
+UDF.M_INT1_SWF as M_INT1_SWF,
+UDF.M_INT2_LBL as M_INT2_LBL,
+UDF.M_INT2_SWF as M_INT2_SWF
+FROM  SI_KEY_DBF SI, TABLE#DATA#SITRN_DBF UDF, TRN_CPDF_DBF PTF
+WHERE M_USER = 'MX_IMPORT'
+AND UDF.M_REF= SI.M_REF
+AND PTF.M_LABEL = SI.M_LABEL"
+"TRD_UDF.REP         |/*SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE FROM TABLE#DATA#DEALIRD_DBF
+union all 
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2,M_CATEGORY,M_CHANNEL,M_SEG_CODE,M_TYPE,M_CASH_CNTR,M_PROD_CODE FROM TABLE#DATA#DEALCURR_DBF
+union all 
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, null as M_IS_BROKER1, null as M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE FROM TABLE#DATA#DEALEQD_DBF
+union all 
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE  FROM TABLE#DATA#DEALCOM_DBF
+union all 
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, null as M_IS_BROKER1, null as M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,null as M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE FROM TABLE#DATA#DEALCRD_DBF
+
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE, T1.M_IS_COMMO as M_COMMODITY, T2.M__ID_ AS M_COMMOD_CD
+FROM TABLE#DATA#DEALIRD_DBF T1 left join TABLE#LIST#ISL_COM_DBF T2 on TRIM(T1.M_IS_COMMO)=TRIM(T2.M_COMMODITY)
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2,M_CATEGORY,M_CHANNEL,M_SEG_CODE,M_TYPE,M_CASH_CNTR,M_PROD_CODE,T1.M_IS_COMMO as M_COMMODITY, T2.M__ID_ AS M_COMMOD_CD
+FROM TABLE#DATA#DEALCURR_DBF T1 left join TABLE#LIST#ISL_COM_DBF T2 on TRIM(T1.M_IS_COMMO)=TRIM(T2.M_COMMODITY)
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, null as M_IS_BROKER1, null as M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE, null as M_COMMODITY, null as M_COMMOD_CD FROM TABLE#DATA#DEALEQD_DBF
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE, null as M_COMMODITY, null as M_COMMOD_CD FROM TABLE#DATA#DEALCOM_DBF
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, null as M_IS_BROKER1, null as M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,null as M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE, null as M_COMMODITY, null as M_COMMOD_CD FROM TABLE#DATA#DEALCRD_DBF
+*/
+
+/* COmmented on 20 08 2022
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE, 
+T1.M_IS_COMMO as M_COMMODITY, T2.M__ID_ AS M_COMMOD_CD, M_IS_BRPRICE
+FROM TABLE#DATA#DEALIRD_DBF T1 left join TABLE#LIST#ISL_COM_DBF T2 on TRIM(T1.M_IS_COMMO)=TRIM(T2.M_COMMODITY)
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2,M_CATEGORY,M_CHANNEL,M_SEG_CODE,M_TYPE,M_CASH_CNTR,M_PROD_CODE,T1.M_IS_COMMO as M_COMMODITY, 
+T2.M__ID_ AS M_COMMOD_CD, M_IS_BRPRICE
+FROM TABLE#DATA#DEALCURR_DBF T1 left join TABLE#LIST#ISL_COM_DBF T2 on TRIM(T1.M_IS_COMMO)=TRIM(T2.M_COMMODITY)
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, null as M_IS_BROKER1, null as M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE,
+null as M_COMMODITY, null as M_COMMOD_CD, null as M_IS_BRPRICE
+FROM TABLE#DATA#DEALEQD_DBF
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE, 
+null as M_COMMODITY, null as M_COMMOD_CD, M_IS_BRPRICE 
+FROM TABLE#DATA#DEALCOM_DBF
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, null as M_IS_BROKER1, null as M_IS_BROKER2,null as M_CATEGORY,null as M_CHANNEL,null as M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,
+M_PROD_CODE, null as M_COMMODITY, null as M_COMMOD_CD, null as M_IS_BRPRICE
+FROM TABLE#DATA#DEALCRD_DBF
+
+
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, T3.M_NAME as M_BRK1_NAME, CAST(M_BNCH_RATE AS VARCHAR2(20)) as M_CATEGORY, null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE, 
+T1.M_IS_COMMO as M_COMMODITY, T2.M__ID_ AS M_COMMOD_CD, M_IS_BRPRICE
+FROM TABLE#DATA#DEALIRD_DBF T1 
+left join TABLE#LIST#ISL_COM_DBF T2 on TRIM(T1.M_IS_COMMO)=TRIM(T2.M_COMMODITY)
+LEFT JOIN TRN_CPDF_DBF T3 on TRIM(T1.M_IS_BROKER1)=TRIM(T3.M_DSP_LABEL)
+
+--select * from TRN_CPDF_DBF where M_DSP_LABEL like '%10000004%'
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, T3.M_NAME as M_BRK1_NAME, M_CATEGORY,M_CHANNEL,M_SEG_CODE,M_TYPE,M_CASH_CNTR,M_PROD_CODE,T1.M_IS_COMMO as M_COMMODITY, 
+T2.M__ID_ AS M_COMMOD_CD, M_IS_BRPRICE
+FROM TABLE#DATA#DEALCURR_DBF T1 left join TABLE#LIST#ISL_COM_DBF T2 on TRIM(T1.M_IS_COMMO)=TRIM(T2.M_COMMODITY)
+LEFT JOIN TRN_CPDF_DBF T3 on TRIM(T1.M_IS_BROKER1)=TRIM(T3.M_DSP_LABEL)
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, null as M_IS_BROKER1, null as M_IS_BROKER2, null as M_BRK1_NAME, null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE,
+null as M_COMMODITY, null as M_COMMOD_CD, null as M_IS_BRPRICE
+FROM TABLE#DATA#DEALEQD_DBF
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, T3.M_NAME as M_BRK1_NAME,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE, 
+null as M_COMMODITY, null as M_COMMOD_CD, M_IS_BRPRICE 
+FROM TABLE#DATA#DEALCOM_DBF T1
+LEFT JOIN TRN_CPDF_DBF T3 on TRIM(T1.M_IS_BROKER1)=TRIM(T3.M_DSP_LABEL)
+
+union all 
+
+SELECT M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, null as M_IS_BROKER1, null as M_IS_BROKER2, null as M_BRK1_NAME,null as M_CATEGORY,null as M_CHANNEL,null as M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,
+M_PROD_CODE, null as M_COMMODITY, null as M_COMMOD_CD, null as M_IS_BRPRICE
+FROM TABLE#DATA#DEALCRD_DBF
+*/
+SELECT M_TRADE_REF, M_VERSION,  M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, M_BRK1_NAME, M_CATEGORY, M_CHANNEL,M_SEG_CODE,M_TYPE,M_CASH_CNTR,M_PROD_CODE, 
+M_COMMODITY, CAST(M_COMMOD_CD AS NUMERIC(20, 3)) AS M_COMMOD_CD, CAST(M_IS_BRPRICE AS NUMERIC(20, 5)) AS M_IS_BRPRICE, M_VDATE1, M_AGENT FROM (
+SELECT EXT.M_TRADE_REF,EXT.M_VERSION, M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, T3.M_NAME as M_BRK1_NAME, CAST(M_BNCH_RATE AS VARCHAR2(20)) as M_CATEGORY, null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE, 
+T1.M_IS_COMMO as M_COMMODITY, T2.M__ID_ AS M_COMMOD_CD, M_IS_BRPRICE, null AS M_VDATE1, MAX(EXT.M_VERSION) OVER (PARTITION BY EXT.M_TRADE_REF) AS MAX_VER, T1.M_AGENT
+FROM TABLE#DATA#DEALIRD_DBF T1 
+left join TABLE#LIST#ISL_COM_DBF T2 on TRIM(T1.M_IS_COMMO)=TRIM(T2.M_COMMODITY)
+LEFT JOIN TRN_CPDF_DBF T3 on TRIM(T1.M_IS_BROKER1)=TRIM(T3.M_DSP_LABEL)
+LEFT JOIN TRN_EXT_DBF EXT on EXT.M_UDF_REF = T1.M_NB
+)
+WHERE M_VERSION = MAX_VER
+
+ 
+union all
+
+SELECT M_TRADE_REF, M_VERSION,  M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, M_BRK1_NAME, M_CATEGORY, M_CHANNEL,M_SEG_CODE,M_TYPE,M_CASH_CNTR,M_PROD_CODE, 
+M_COMMODITY,CAST(M_COMMOD_CD AS NUMERIC(20, 3)) AS M_COMMOD_CD, CAST(M_IS_BRPRICE AS NUMERIC(20, 5)) AS M_IS_BRPRICE, M_VDATE1, M_AGENT FROM (
+SELECT EXT.M_TRADE_REF,EXT.M_VERSION,M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, T3.M_NAME as M_BRK1_NAME, M_CATEGORY,M_CHANNEL,M_SEG_CODE,M_TYPE,M_CASH_CNTR,M_PROD_CODE,T1.M_IS_COMMO as M_COMMODITY, 
+T2.M__ID_ AS M_COMMOD_CD, M_IS_BRPRICE, t1.M_VDATE1 AS M_VDATE1, MAX(EXT.M_VERSION) OVER (PARTITION BY EXT.M_TRADE_REF) AS MAX_VER, '' AS M_AGENT
+FROM TABLE#DATA#DEALCURR_DBF T1 left join TABLE#LIST#ISL_COM_DBF T2 on TRIM(T1.M_IS_COMMO)=TRIM(T2.M_COMMODITY)
+LEFT JOIN TRN_CPDF_DBF T3 on TRIM(T1.M_IS_BROKER1)=TRIM(T3.M_DSP_LABEL)
+LEFT JOIN TRN_EXT_DBF EXT on EXT.M_UDF_REF = T1.M_NB
+)
+WHERE M_VERSION = MAX_VER
+
+union all
+
+SELECT M_TRADE_REF, M_VERSION,  M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, M_BRK1_NAME, M_CATEGORY, M_CHANNEL,M_SEG_CODE,M_TYPE,M_CASH_CNTR,M_PROD_CODE, 
+M_COMMODITY,CAST(M_COMMOD_CD AS NUMERIC(20, 3)) AS M_COMMOD_CD, CAST(M_IS_BRPRICE AS NUMERIC(20, 5)) AS M_IS_BRPRICE, M_VDATE1, M_AGENT FROM ( 
+SELECT EXT.M_TRADE_REF,EXT.M_VERSION,M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, null as M_IS_BROKER1, null as M_IS_BROKER2, null as M_BRK1_NAME, null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE,
+null as M_COMMODITY, null as M_COMMOD_CD, null as M_IS_BRPRICE, null AS M_VDATE1, MAX(EXT.M_VERSION) OVER (PARTITION BY EXT.M_TRADE_REF) AS MAX_VER, T1.M_AGENT
+FROM TABLE#DATA#DEALEQD_DBF T1
+LEFT JOIN TRN_EXT_DBF EXT on EXT.M_UDF_REF = T1.M_NB
+)
+WHERE M_VERSION = MAX_VER
+ 
+union all
+
+SELECT M_TRADE_REF, M_VERSION,  M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, M_BRK1_NAME, M_CATEGORY, M_CHANNEL,M_SEG_CODE,M_TYPE,M_CASH_CNTR,M_PROD_CODE, 
+M_COMMODITY, CAST(M_COMMOD_CD AS NUMERIC(20, 3)) AS M_COMMOD_CD, CAST(M_IS_BRPRICE AS NUMERIC(20, 5)) AS M_IS_BRPRICE, M_VDATE1, M_AGENT FROM (  
+SELECT EXT.M_TRADE_REF,EXT.M_VERSION,M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, T3.M_NAME as M_BRK1_NAME,null as M_CATEGORY,null as M_CHANNEL,M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,M_PROD_CODE, 
+null as M_COMMODITY, null as M_COMMOD_CD, M_IS_BRPRICE, null AS M_VDATE1 , MAX(EXT.M_VERSION) OVER (PARTITION BY EXT.M_TRADE_REF) AS MAX_VER, T1.M_AGENT
+FROM TABLE#DATA#DEALCOM_DBF T1
+LEFT JOIN TRN_CPDF_DBF T3 on TRIM(T1.M_IS_BROKER1)=TRIM(T3.M_DSP_LABEL)
+LEFT JOIN TRN_EXT_DBF EXT on EXT.M_UDF_REF = T1.M_NB
+)
+WHERE M_VERSION = MAX_VER
+
+union all
+
+SELECT M_TRADE_REF, M_VERSION,  M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND, M_IS_BROKER1, M_IS_BROKER2, M_BRK1_NAME, M_CATEGORY, M_CHANNEL,M_SEG_CODE,M_TYPE,M_CASH_CNTR,M_PROD_CODE, 
+M_COMMODITY,CAST(M_COMMOD_CD AS NUMERIC(20, 3)) AS M_COMMOD_CD, CAST(M_IS_BRPRICE AS NUMERIC(20, 5)) AS M_IS_BRPRICE, M_VDATE1, M_AGENT FROM (  
+SELECT EXT.M_TRADE_REF,EXT.M_VERSION,M_NB, M_VAAMT, M_VAAMTCCY, M_CLIENT_IND as M_CLIENT_IND, null as M_IS_BROKER1, null as M_IS_BROKER2, null as M_BRK1_NAME,null as M_CATEGORY,null as M_CHANNEL,null as M_SEG_CODE,null as M_TYPE,' ' as M_CASH_CNTR,
+M_PROD_CODE, null as M_COMMODITY, null as M_COMMOD_CD, null as M_IS_BRPRICE, null AS M_VDATE1, MAX(EXT.M_VERSION) OVER (PARTITION BY EXT.M_TRADE_REF) AS MAX_VER, '' AS M_AGENT
+FROM TABLE#DATA#DEALCRD_DBF T1
+LEFT JOIN TRN_EXT_DBF EXT on EXT.M_UDF_REF = T1.M_NB
+)
+WHERE M_VERSION = MAX_VER"

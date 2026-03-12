@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MX Config Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;
+  --accent:#3fb950;--blue:#58a6ff;--del:#f85149;--add:#3fb950;
+  --mod:#d29922;--text:#e6edf3;--muted:#8b949e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif}
+
+/* ── Top bar ── */
+.topbar{height:46px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
+  letter-spacing:.06em;color:#fff;white-space:nowrap;padding-right:12px;
+  border-right:1px solid var(--border)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 8px var(--accent);animation:pulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.topbar input{background:var(--bg);border:1px solid var(--border);border-radius:5px;
+  padding:5px 10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;
+  outline:none;transition:border-color .15s}
+.topbar input:focus{border-color:var(--blue)}
+#inp-repo{width:200px}
+#inp-token{width:220px}
+.btn{padding:6px 14px;border:none;border-radius:5px;font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+.btn-connect{background:var(--blue);color:#fff}
+.btn-connect:hover{background:#79c0ff}
+.btn-diff{background:var(--accent);color:#000;padding:7px 20px;font-weight:700;font-size:12px}
+.btn-diff:hover:not(:disabled){background:#56d364}
+.btn-diff:disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed}
+#conn-status{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted)}
+.topbar-space{flex:1}
+
+/* ── Workspace ── */
+.workspace{display:flex;height:calc(100vh - 46px);overflow:hidden}
+
+/* ── Sidebar ── */
+.sidebar{width:265px;flex-shrink:0;background:var(--surface);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-sec{padding:10px 12px;border-bottom:1px solid var(--border)}
+.sb-lbl{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:6px;display:block}
+.date-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dlbl{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  margin-bottom:3px;display:block}
+.dlbl-b{color:var(--del)}.dlbl-c{color:var(--add)}
+select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;
+  padding:5px 8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;
+  outline:none;cursor:pointer;transition:border-color .15s}
+select:focus{border-color:var(--blue)}
+select option{background:var(--surface)}
+
+.stats-strip{display:none;padding:6px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:4px}
+.chip{font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 6px;
+  border-radius:3px;font-weight:600;border:1px solid}
+.chip-mod{color:var(--mod);border-color:rgba(210,153,34,.3);background:rgba(210,153,34,.08)}
+.chip-add{color:var(--add);border-color:rgba(63,185,80,.3);background:rgba(63,185,80,.08)}
+.chip-del{color:var(--del);border-color:rgba(248,81,73,.3);background:rgba(248,81,73,.08)}
+.chip-neu{color:var(--muted);border-color:var(--border);background:var(--surface2)}
+
+.sb-lbl-row{padding:8px 12px 3px}
+.obj-scroll{flex:1;overflow-y:auto}
+.obj-scroll::-webkit-scrollbar{width:4px}
+.obj-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.obj-item{display:flex;align-items:center;gap:7px;padding:5px 12px;cursor:pointer;
+  font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);
+  transition:background .1s;user-select:none;border-left:2px solid transparent}
+.obj-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.obj-item.active{background:rgba(88,166,255,.08);color:var(--blue);border-left-color:var(--blue)}
+.obj-item.has-change{color:var(--text)}
+.odot{width:5px;height:5px;border-radius:50%;background:var(--border);flex-shrink:0}
+.odot.mod{background:var(--mod)}.odot.ok{background:var(--add)}.odot.act{background:var(--blue)}
+.oname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.obadge{font-size:9px;padding:1px 4px;border-radius:3px;font-weight:600;flex-shrink:0;border:1px solid}
+.ob-c{color:var(--mod);border-color:rgba(210,153,34,.3);background:rgba(210,153,34,.1)}
+.ob-ok{color:var(--add);border-color:rgba(63,185,80,.25);background:rgba(63,185,80,.08)}
+.ob-e{color:var(--del);border-color:rgba(248,81,73,.25);background:rgba(248,81,73,.08)}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.diff-bar{height:38px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0}
+.diff-bar-title{font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:500;
+  flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dchip{font-size:11px;font-family:'JetBrains Mono',monospace;padding:2px 8px;
+  border-radius:4px;font-weight:600;border:1px solid}
+.dchip-b{color:var(--del);border-color:rgba(248,81,73,.3);background:rgba(248,81,73,.08)}
+.dchip-c{color:var(--add);border-color:rgba(63,185,80,.3);background:rgba(63,185,80,.08)}
+.arrow{color:var(--muted);font-size:11px}
+.diff-scroll{flex:1;overflow:auto}
+.diff-scroll::-webkit-scrollbar{width:6px;height:6px}
+.diff-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── Center / loading ── */
+.center{display:flex;align-items:center;justify-content:center;height:100%;
+  flex-direction:column;gap:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px}
+.center-icon{font-size:48px;opacity:.15}
+.lbar{width:200px;height:2px;background:var(--border);border-radius:2px;overflow:hidden}
+.lfill{height:100%;background:var(--blue);animation:la 1.2s ease-in-out infinite}
+@keyframes la{0%{width:0;margin-left:0}50%{width:60%;margin-left:30%}100%{width:0;margin-left:100%}}
+.err-box{margin:14px;background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.2);
+  border-radius:6px;padding:12px 14px;color:var(--del);font-size:12px;
+  font-family:'JetBrains Mono',monospace;line-height:1.6}
+
+/* ── Diff table ── */
+.diff-wrap{overflow-x:auto}
+table.dtable{border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px;
+  width:100%;table-layout:fixed}
+table.dtable thead{position:sticky;top:0;z-index:10}
+table.dtable th{background:var(--surface2);padding:7px 10px;font-size:10px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid var(--border);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.th-g{width:28px;min-width:28px;max-width:28px;text-align:center;color:var(--muted);
+  border-right:1px solid var(--border)}
+.th-base{color:var(--del);background:rgba(248,81,73,.05);text-align:left}
+.th-cmp{color:var(--add);background:rgba(63,185,80,.05);text-align:left}
+.th-div{width:3px;min-width:3px;max-width:3px;background:var(--border);padding:0;border:none}
+
+table.dtable td{padding:4px 10px;border-bottom:1px solid rgba(255,255,255,.03);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;max-width:0}
+.td-g{width:28px;min-width:28px;max-width:28px;text-align:center;font-weight:700;
+  font-size:13px;border-right:1px solid var(--border)}
+.td-div{width:3px;min-width:3px;max-width:3px;background:var(--border);padding:0;border:none}
+
+.g-del{background:rgba(248,81,73,.2);color:var(--del)}
+.g-add{background:rgba(63,185,80,.2);color:var(--add)}
+.g-mod{background:rgba(210,153,34,.2);color:var(--mod)}
+.g-emp{background:rgba(255,255,255,.02)}
+
+.c-del{background:rgba(248,81,73,.07);color:#ffa8b0}
+.c-add{background:rgba(63,185,80,.07);color:#a8ffc0}
+.c-mod-b{background:rgba(248,81,73,.13);color:#ffb8c0}
+.c-mod-c{background:rgba(63,185,80,.13);color:#b8ffd0}
+.c-emp-b{background:rgba(248,81,73,.02)}
+.c-emp-c{background:rgba(63,185,80,.02)}
+.c-same{color:var(--text)}
+
+mark.m-del{background:rgba(248,81,73,.55);color:#fff;border-radius:2px;padding:0 2px;font-weight:600}
+mark.m-add{background:rgba(63,185,80,.55);color:#000;border-radius:2px;padding:0 2px;font-weight:600}
+tr.dr:hover td{filter:brightness(1.12)}
+
+/* ── All-objects accordion ── */
+.sec{border-bottom:1px solid var(--border)}
+.sec-hdr{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;
+  user-select:none;transition:background .1s;background:var(--surface2)}
+.sec-hdr:hover{background:var(--surface)}
+.sec-name{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;flex:1}
+.sec-meta{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.chev{color:var(--muted);font-size:11px;transition:transform .2s;margin-left:4px;flex-shrink:0}
+.chev.open{transform:rotate(180deg)}
+.sec-body{display:none}
+.sec-body.open{display:block}
+.no-diff{padding:24px;text-align:center;color:var(--muted);font-size:12px;
+  font-family:'JetBrains Mono',monospace}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><div class="dot"></div>MX CONFIG&nbsp;<span style="color:var(--accent)">TRACKER</span></div>
+  <input id="inp-repo" placeholder="owner/repo" value="abounajim/mx-config-tracker"/>
+  <input id="inp-token" type="password" placeholder="ghp_token"/>
+  <button class="btn btn-connect" onclick="connect()">Connect</button>
+  <span id="conn-status"></span>
+  <div class="topbar-space"></div>
+  <button class="btn btn-diff" id="btn-diff" onclick="runDiff()" disabled>▶ Show Diff</button>
+</div>
+
+<div class="workspace">
+  <div class="sidebar">
+    <div class="sb-sec">
+      <div class="date-grid">
+        <div><span class="dlbl dlbl-b">Base (older)</span><select id="sel-base"></select></div>
+        <div><span class="dlbl dlbl-c">Compare (newer)</span><select id="sel-cmp"></select></div>
+      </div>
+    </div>
+    <div class="stats-strip" id="stats-strip"></div>
+    <div class="sb-lbl-row"><span class="sb-lbl">Objects</span></div>
+    <div class="obj-scroll" id="obj-scroll">
+      <div style="padding:16px 12px;color:var(--muted);font-size:11px;font-family:'JetBrains Mono',monospace">Connect to load</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="diff-bar" id="diff-bar" style="display:none">
+      <span class="diff-bar-title" id="diff-bar-title"></span>
+      <span class="dchip dchip-b" id="dchip-b"></span>
+      <span class="arrow">→</span>
+      <span class="dchip dchip-c" id="dchip-c"></span>
+    </div>
+    <div class="diff-scroll" id="diff-scroll">
+      <div class="center">
+        <div class="center-icon">⌥</div>
+        <div>Connect and click Show Diff</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+let availableDates = [];
+let allFiles       = [];
+let selectedFile   = null;
+let diffResults    = {};
+let currentRepo    = '';
+let currentToken   = '';
+
+// ── GitHub API ────────────────────────────────────────────────────
+async function ghFetch(url) {
+  const h = { 'Accept': 'application/vnd.github+json' };
+  if (currentToken) h['Authorization'] = `Bearer ${currentToken}`;
+  const r = await fetch(url, { headers: h });
+  if (!r.ok) throw new Error(`GitHub ${r.status} — ${url.split('/').slice(-2).join('/')}`);
+  return r.json();
+}
+
+async function getFileRaw(repo, date, filename) {
+  const data = await ghFetch(
+    `https://api.github.com/repos/${repo}/contents/prod/${date}/${filename}`
+  );
+  // >1MB fallback to git blobs API
+  if (data.content) return atob(data.content.replace(/\n/g, ''));
+  if (data.sha) {
+    const blob = await ghFetch(
+      `https://api.github.com/repos/${repo}/git/blobs/${data.sha}`
+    );
+    return atob(blob.content.replace(/\n/g, ''));
+  }
+  throw new Error(`Empty response for ${filename}`);
+}
+
+// ── Connect ───────────────────────────────────────────────────────
+async function connect() {
+  currentRepo  = document.getElementById('inp-repo').value.trim();
+  currentToken = document.getElementById('inp-token').value.trim();
+  setStatus('Connecting…', '');
+  try {
+    const tree = await ghFetch(
+      `https://api.github.com/repos/${currentRepo}/git/trees/main?recursive=1`
+    );
+    const paths = tree.tree.map(n => n.path).filter(p => p.startsWith('prod/'));
+    const dSet  = new Set(), fSet = new Set();
+    paths.forEach(p => {
+      const pts = p.split('/');
+      if (pts.length === 3) { dSet.add(pts[1]); fSet.add(pts[2]); }
+    });
+    availableDates = Array.from(dSet).sort().reverse();
+    allFiles       = Array.from(fSet).sort();
+    if (!availableDates.length) throw new Error('No snapshot folders found in prod/');
+
+    const opts = availableDates.map((d, i) => `<option value="${i}">${d}</option>`).join('');
+    document.getElementById('sel-base').innerHTML = opts;
+    document.getElementById('sel-cmp').innerHTML  = opts;
+    document.getElementById('sel-base').selectedIndex = Math.min(1, availableDates.length - 1);
+    document.getElementById('sel-cmp').selectedIndex  = 0;
+    document.getElementById('btn-diff').disabled = false;
+
+    buildObjList(null);
+    setStatus(`✓ ${availableDates.length} snapshots · ${allFiles.length} objects`, 'ok');
+  } catch(e) {
+    setStatus(`✗ ${e.message}`, 'err');
+  }
+}
+
+// ── Object list ───────────────────────────────────────────────────
+function buildObjList(results) {
+  const allActive = selectedFile === null;
+  let html = `
+    <div class="obj-item ${allActive ? 'active' : ''}" onclick="selObj(null,this)">
+      <div class="odot ${allActive ? 'act' : ''}"></div>
+      <div class="oname">⊞ ALL (${allFiles.length})</div>
+    </div>`;
+  allFiles.forEach(f => {
+    const r = results && results[f];
+    const ch = r && !r.error && (r.added.length || r.removed.length || r.modified.length);
+    const isAct = selectedFile === f;
+    const badge = r
+      ? r.error
+        ? `<span class="obadge ob-e">ERR</span>`
+        : ch
+          ? `<span class="obadge ob-c">changed</span>`
+          : `<span class="obadge ob-ok">ok</span>`
+      : '';
+    html += `
+      <div class="obj-item ${ch ? 'has-change' : ''} ${isAct ? 'active' : ''}"
+           onclick="selObj('${esc(f)}',this)">
+        <div class="odot ${ch ? 'mod' : r ? 'ok' : ''} ${isAct ? 'act' : ''}"></div>
+        <div class="oname">${esc(f.replace('.csv', ''))}</div>${badge}
+      </div>`;
+  });
+  document.getElementById('obj-scroll').innerHTML = html;
+}
+
+function selObj(fname, el) {
+  selectedFile = fname;
+  document.querySelectorAll('.obj-item').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  if (Object.keys(diffResults).length) renderSelected();
+}
+
+// ── CSV parser — handles quoted multiline fields & commas inside quotes ──
+function parseCSV(text) {
+  if (!text) return [];
+  const rows = [];
+  let cur = '', inQ = false, fields = [];
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i], nx = text[i + 1];
+    if (ch === '"') {
+      if (inQ && nx === '"') { cur += '"'; i++; }  // escaped quote ""
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) {
+      fields.push(cur); cur = '';
+    } else if ((ch === '\n' || ch === '\r') && !inQ) {
+      if (ch === '\r' && nx === '\n') i++;
+      fields.push(cur); cur = '';
+      if (fields.length) rows.push(fields);
+      fields = [];
+    } else {
+      cur += ch;
+    }
+  }
+  // flush last field/row
+  if (cur !== '' || fields.length) { fields.push(cur); rows.push(fields); }
+  return rows.filter(r => r.some(c => c.trim() !== ''));
+}
+
+// ── Normalize ─────────────────────────────────────────────────────
+function norm(s) {
+  return String(s || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+}
+
+// ── Word-level highlight ──────────────────────────────────────────
+function hlDiff(a, b, type) {
+  const aw = a.split(/\b/), bw = b.split(/\b/);
+  const as = new Set(aw), bs = new Set(bw);
+  if (type === 'del')
+    return aw.map(w => (!bs.has(w) && w.trim()) ? `<mark class="m-del">${esc(w)}</mark>` : esc(w)).join('');
+  return bw.map(w => (!as.has(w) && w.trim()) ? `<mark class="m-add">${esc(w)}</mark>` : esc(w)).join('');
+}
+
+// ── Diff engine ───────────────────────────────────────────────────
+function computeDiff(base, cmp) {
+  // Full-row key using normalized cells
+  const fk   = r => r.map(norm).join('|||');
+  const bMap = new Map(base.map(r => [fk(r), r]));
+  const cMap = new Map(cmp.map(r  => [fk(r), r]));
+
+  // Find a column whose values are unique & non-empty in base — use as row key
+  function findKeyCol(data) {
+    if (!data.length) return -1;
+    for (let ci = 0; ci < data[0].length; ci++) {
+      const vals = data.map(r => norm(r[ci] || '').split(/[|: ]/)[0].trim());
+      if (vals.every(v => v !== '') && new Set(vals).size === data.length) return ci;
+    }
+    return -1;
+  }
+
+  const cRem = base.filter(r => !cMap.has(fk(r)));
+  const cAdd = cmp.filter(r  => !bMap.has(fk(r)));
+  const modified = [], used = new Set();
+  const kc = findKeyCol(base);
+
+  if (kc >= 0) {
+    const gk  = r => norm(r[kc] || '').split(/[|: ]/)[0].trim();
+    const ckm = new Map(cAdd.map((r, i) => [gk(r), i]));
+    cRem.forEach(br => {
+      const k = gk(br);
+      if (ckm.has(k)) {
+        const i = ckm.get(k);
+        if (!used.has(i)) { modified.push({ base: br, compare: cAdd[i] }); used.add(i); }
+      }
+    });
+  }
+
+  const mb = new Set(modified.map(m => fk(m.base)));
+  const mc = new Set(modified.map(m => fk(m.compare)));
+  return {
+    added:    cAdd.filter(r => !mc.has(fk(r))),
+    removed:  cRem.filter(r => !mb.has(fk(r))),
+    modified,
+  };
+}
+
+// ── Build side-by-side table ──────────────────────────────────────
+function buildTable(headers, added, removed, modified) {
+  if (!added.length && !removed.length && !modified.length)
+    return `<div class="no-diff">✓ No differences — files are identical</div>`;
+
+  const n  = Math.max(headers.length, 1);
+  const cw = `style="min-width:100px;max-width:480px;width:${Math.max(100, Math.floor(680/n))}px"`;
+
+  // Header row
+  const lh = headers.map(h => `<th class="th-base" ${cw}>${esc(h)}</th>`).join('');
+  const rh = headers.map(h => `<th class="th-cmp"  ${cw}>${esc(h)}</th>`).join('');
+  const thead = `<tr><th class="th-g">⟵</th>${lh}<th class="th-div"></th><th class="th-g">⟶</th>${rh}</tr>`;
+
+  let tbody = '';
+
+  // Modified — only highlight changed cells, word-level within them
+  modified.forEach(({ base, compare }) => {
+    let lc = '', rc = '';
+    headers.forEach((_, ci) => {
+      const changed = norm(base[ci]) !== norm(compare[ci]);
+      if (changed) {
+        lc += `<td class="c-mod-b" ${cw} title="${esc(base[ci]||'')}">${hlDiff(base[ci]||'', compare[ci]||'', 'del')}</td>`;
+        rc += `<td class="c-mod-c" ${cw} title="${esc(compare[ci]||'')}">${hlDiff(base[ci]||'', compare[ci]||'', 'add')}</td>`;
+      } else {
+        lc += `<td class="c-same" ${cw} title="${esc(base[ci]||'')}">${esc(base[ci]||'')}</td>`;
+        rc += `<td class="c-same" ${cw} title="${esc(compare[ci]||'')}">${esc(compare[ci]||'')}</td>`;
+      }
+    });
+    tbody += `<tr class="dr">
+      <td class="td-g g-mod">~</td>${lc}
+      <td class="td-div"></td>
+      <td class="td-g g-mod">~</td>${rc}
+    </tr>`;
+  });
+
+  // Removed — left filled, right empty
+  removed.forEach(r => {
+    const lc = headers.map((_, ci) =>
+      `<td class="c-del" ${cw} title="${esc(r[ci]||'')}">${esc(r[ci]||'')}</td>`).join('');
+    const rc = headers.map(() => `<td class="c-emp-c" ${cw}></td>`).join('');
+    tbody += `<tr class="dr">
+      <td class="td-g g-del">−</td>${lc}
+      <td class="td-div"></td>
+      <td class="td-g g-emp"></td>${rc}
+    </tr>`;
+  });
+
+  // Added — left empty, right filled
+  added.forEach(r => {
+    const lc = headers.map(() => `<td class="c-emp-b" ${cw}></td>`).join('');
+    const rc = headers.map((_, ci) =>
+      `<td class="c-add" ${cw} title="${esc(r[ci]||'')}">${esc(r[ci]||'')}</td>`).join('');
+    tbody += `<tr class="dr">
+      <td class="td-g g-emp"></td>${lc}
+      <td class="td-div"></td>
+      <td class="td-g g-add">+</td>${rc}
+    </tr>`;
+  });
+
+  return `<div class="diff-wrap">
+    <table class="dtable">
+      <thead>${thead}</thead>
+      <tbody>${tbody}</tbody>
+    </table>
+  </div>`;
+}
+
+// ── Run diff ──────────────────────────────────────────────────────
+async function runDiff() {
+  const snapBase = availableDates[document.getElementById('sel-base').selectedIndex];
+  const snapCmp  = availableDates[document.getElementById('sel-cmp').selectedIndex];
+  if (snapBase === snapCmp) { alert('Select two different snapshots.'); return; }
+
+  diffResults = {};
+  setChips(snapBase, snapCmp);
+  document.getElementById('stats-strip').style.display = 'none';
+  document.getElementById('diff-scroll').innerHTML =
+    `<div class="center"><div>Loading ${allFiles.length} objects…</div>
+     <div class="lbar"><div class="lfill"></div></div></div>`;
+  document.getElementById('btn-diff').disabled = true;
+
+  for (const f of allFiles) {
+    try {
+      const [bRaw, cRaw] = await Promise.all([
+        getFileRaw(currentRepo, snapBase, f),
+        getFileRaw(currentRepo, snapCmp,  f),
+      ]);
+      const bRows  = parseCSV(bRaw || '');
+      const cRows  = parseCSV(cRaw || '');
+      const headers = bRows[0] || cRows[0] || [];
+      const { added, removed, modified } = computeDiff(bRows.slice(1), cRows.slice(1));
+      diffResults[f] = { headers, added, removed, modified };
+    } catch(e) {
+      diffResults[f] = { error: e.message, headers: [], added: [], removed: [], modified: [] };
+    }
+  }
+
+  // Stats
+  let tm = 0, ta = 0, td = 0, ch = 0;
+  allFiles.forEach(f => {
+    const r = diffResults[f];
+    if (r && !r.error && (r.added.length || r.removed.length || r.modified.length)) {
+      ch++; tm += r.modified.length; ta += r.added.length; td += r.removed.length;
+    }
+  });
+  const ss = document.getElementById('stats-strip');
+  ss.style.display = 'flex';
+  ss.innerHTML = `
+    <span class="chip chip-neu">${ch}/${allFiles.length} changed</span>
+    <span class="chip chip-mod">~${tm} modified</span>
+    <span class="chip chip-add">+${ta} added</span>
+    <span class="chip chip-del">-${td} removed</span>`;
+
+  buildObjList(diffResults);
+  document.getElementById('btn-diff').disabled = false;
+  renderSelected();
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderSelected() {
+  const bd = availableDates[document.getElementById('sel-base').selectedIndex];
+  const cd = availableDates[document.getElementById('sel-cmp').selectedIndex];
+  setChips(bd, cd);
+  if (selectedFile === null) renderAll();
+  else renderSingle(selectedFile);
+}
+
+function renderSingle(f) {
+  const r = diffResults[f];
+  if (!r) {
+    document.getElementById('diff-scroll').innerHTML =
+      `<div class="center"><div>Click Show Diff first</div></div>`;
+    return;
+  }
+  document.getElementById('diff-bar').style.display = 'flex';
+  document.getElementById('diff-bar-title').innerHTML =
+    `<span style="color:var(--accent)">${esc(f)}</span>`;
+  document.getElementById('diff-scroll').innerHTML = r.error
+    ? `<div class="err-box">${esc(r.error)}</div>`
+    : buildTable(r.headers, r.added, r.removed, r.modified);
+}
+
+function renderAll() {
+  document.getElementById('diff-bar').style.display = 'flex';
+  document.getElementById('diff-bar-title').innerHTML =
+    `<span style="color:var(--mod)">⊞ ALL OBJECTS</span>`;
+  let html = '';
+  allFiles.forEach((f, i) => {
+    const r  = diffResults[f];
+    if (!r) return;
+    const ch = !r.error && (r.added.length || r.removed.length || r.modified.length);
+    const badge = r.error
+      ? `<span class="obadge ob-e">ERROR</span>`
+      : ch
+        ? `<span class="obadge ob-c">CHANGED</span>`
+        : `<span class="obadge ob-ok">NO CHANGES</span>`;
+    const meta = ch
+      ? `<span class="sec-meta">~${r.modified.length} mod / +${r.added.length} add / -${r.removed.length} del</span>`
+      : '';
+    const body = r.error
+      ? `<div class="err-box">${esc(r.error)}</div>`
+      : buildTable(r.headers, r.added, r.removed, r.modified);
+    html += `
+      <div class="sec">
+        <div class="sec-hdr" onclick="toggleSec(${i})">
+          <span class="sec-name">${esc(f)}</span>${badge}${meta}
+          <span class="chev ${ch ? 'open' : ''}" id="chev-${i}">▼</span>
+        </div>
+        <div class="sec-body ${ch ? 'open' : ''}" id="sec-${i}">${body}</div>
+      </div>`;
+  });
+  document.getElementById('diff-scroll').innerHTML =
+    html || `<div class="center"><div>No results yet</div></div>`;
+}
+
+function toggleSec(i) {
+  document.getElementById(`sec-${i}`).classList.toggle('open');
+  document.getElementById(`chev-${i}`).classList.toggle('open');
+}
+
+function setChips(b, c) {
+  document.getElementById('dchip-b').textContent = b || '';
+  document.getElementById('dchip-c').textContent = c || '';
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('conn-status');
+  el.textContent = msg;
+  el.style.color = type === 'err' ? 'var(--del)' : type === 'ok' ? 'var(--add)' : 'var(--muted)';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
